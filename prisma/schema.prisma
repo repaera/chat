@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// auth (ref: better-auth)
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean
+  image         String?
+  locale        String?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  sessions      Session[]
+  accounts      Account[]
+  conversations Conversation[]
+  images        Image[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}
+
+// main
+
+model Conversation {
+  id        String    @id // UUID v7
+  userId    String
+  title     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+model Message {
+  id             String       @id // UUID v7
+  conversationId String
+  role           String // "user" | "assistant"
+  content        String
+  customParts    String?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  images         Image[]
+
+  @@index([conversationId, createdAt])
+}
+
+model Image {
+  id         String    @id // UUID v7
+  userId     String
+  key        String // R2 object key: uploads/{userId}/{uuid}.ext
+  url        String // Public URL via custom domain
+  messageId  String? // null = orphan; diisi saat message submit
+  sizeBytes  Int
+  mimeType   String
+  lastSeenAt DateTime  @default(now()) // diupdate tiap heartbeat (15 menit)
+  attachedAt DateTime? // diisi saat messageId diset
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([messageId])
+  @@index([lastSeenAt]) // untuk query orphan by age
+}

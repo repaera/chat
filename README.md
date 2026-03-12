@@ -1,36 +1,950 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chat
 
-## Getting Started
+A general-purpose AI chat interface powered by MCP. Connect any MCP server — delivery service, handyman booking, task management, or any domain — and interact with it through a natural language conversation. Built with Next.js App Router, AI SDK v5, and Prisma v7.
 
-First, run the development server:
+---
+
+## Features
+
+- **MCP tool integration** — connects to one or two external MCP servers via Streamable HTTP; tools from both are merged automatically
+- **Deployment customization** — app name, AI persona context, and chat suggestions are all env-var driven; one codebase, multiple deployments
+- **Streaming AI responses** — real-time LLM output with typing indicators
+- **Image attachments** — attach images to messages; fetched server-side and sent as binary to the LLM
+- **Location sharing** — v1: browser geolocation; v2: Google Places search + commute calculator with interactive map
+- **Conversation history** — persistent chat history with cursor-based pagination and infinite scroll
+- **Authentication** — email/password with email verification, password reset, email change, and Google OAuth
+- **Locale detection** — auto-detect user language from IP geolocation (IPinfo Lite) with Accept-Language fallback; user-overridable in Settings
+- **i18n system** — lightweight custom locale system covering both UI strings and AI system prompts (EN, ID, KR, JP); no third-party i18n library required
+- **Link detection** — URLs in chat messages are automatically rendered as clickable links
+- **Background jobs** — automatic cleanup of orphaned images and old conversations via Trigger.dev
+
+---
+
+## Tech Stack
+
+| Layer | Library / Tool |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS v4, shadcn/ui |
+| AI | Vercel AI SDK v5 (`ai`, `@ai-sdk/react`) |
+| LLM Provider | 9 providers via Vercel AI SDK — OpenAI, Anthropic, Azure OpenAI, Azure AI Foundry, AWS Bedrock, Google Vertex AI, Fireworks AI, xAI Grok, OpenRouter |
+| Tool Protocol | MCP via `@ai-sdk/mcp` (optional) |
+| Auth | Better Auth v1.5 |
+| ORM | Prisma v7 |
+| Database | SQLite (dev) / PostgreSQL / MariaDB (prod) |
+| Object Storage | Cloudflare R2 (S3-compatible) |
+| Background Jobs | Trigger.dev v3 |
+| Email | Resend (optional) |
+| Locale / i18n | Custom (TypeScript static files + IPinfo Lite geo) |
+| Link Detection | linkify-react |
+| Maps | Leaflet + Google Places API (optional, v2 location mode) |
+| Error Tracking | Sentry (optional) |
+| Linter / Formatter | Biome |
+| Unit Tests | Vitest |
+| E2E Tests | Playwright |
+
+---
+
+## Prerequisites
+
+- **Node.js** >= 20
+- **npm** >= 10 (or pnpm / yarn)
+- **Git**
+
+For production:
+
+- **Docker** + **Docker Compose** v2, or
+- **Dokku** >= 0.34
+
+---
+
+## Environment Variables
+
+Create a `.env.local` file at the project root. Variables marked `*` are required.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# ── App / Branding ──────────────────────────────────────────────
+NEXT_PUBLIC_APP_URL=http://localhost:3000          # * required
+NEXT_PUBLIC_APP_NAME="Chat"                        # app name (title bar, sidebar, manifest)
+NEXT_PUBLIC_APP_SHORT_NAME="Chat"                  # short name for PWA home screen
+NEXT_PUBLIC_APP_DESCRIPTION="Your personal AI assistant"
+NEXT_PUBLIC_APP_THEME_COLOR="#ffffff"              # browser toolbar color on mobile
+NEXT_PUBLIC_APP_BG_COLOR="#ffffff"                 # PWA splash screen background
+
+# ── AI Persona / Chat UI ─────────────────────────────────────────
+# Brief domain description injected into the system prompt.
+# Leave empty for a generic assistant.
+# APP_PERSONA_CONTEXT="online food delivery service"
+# APP_PERSONA_CONTEXT="handyman booking platform"
+
+# Override the empty-state hint shown before the first message.
+# Falls back to the active locale string if not set.
+# ⚠ Single-language override — applies to all users regardless of their locale.
+#   For per-locale text, leave unset and edit src/locales/<lang>.ts instead.
+# NEXT_PUBLIC_APP_CHAT_HINT="Track orders, report issues, and get delivery support."
+
+# Override suggestion buttons as a JSON array (3 items recommended).
+# Falls back to the active locale strings if not set.
+# ⚠ Single-language override — applies to all users regardless of their locale.
+#   For per-locale text, leave unset and edit src/locales/<lang>.ts instead.
+# NEXT_PUBLIC_APP_CHAT_SUGGESTIONS='["Track my order","Cancel order","Where'\''s my driver?"]'
+
+# ── Icons & OG (optional — falls back to public/ files if not set) ──
+# All values accept absolute URLs or relative paths (e.g. /icon.png)
+APP_FAVICON_URL=/favicon.ico
+APP_ICON_SVG_URL=/icon.svg
+APP_ICON_192_URL=/icon-192.png
+APP_ICON_512_URL=/icon-512.png
+APP_APPLE_TOUCH_ICON_URL=/apple-touch-icon.png     # 180×180 PNG
+APP_OG_IMAGE_URL=/og.png                           # 1200×630 PNG
+APP_TWITTER_CARD=summary_large_image               # summary | summary_large_image
+APP_TWITTER_SITE=@yourhandle                       # optional Twitter/X handle
+
+# ── Location Sharing ─────────────────────────────────────────────
+NEXT_PUBLIC_LOCATION_MODE=v1                       # v1 (browser geolocation) | v2 (Google Maps search)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...            # required for v2 — restrict to HTTP referrer + Places/Routes API
+NEXT_PUBLIC_GOOGLE_MAPS_REGION=                    # optional ISO 3166-1 alpha-2 (e.g. ID, JP, KR)
+
+# ── Database ─────────────────────────────────────────────────
+DATABASE_PROVIDER=sqlite                           # sqlite | postgresql | mysql
+DATABASE_URL=file:./dev.db                         # SQLite default
+
+# PostgreSQL (recommended for production)
+# DATABASE_URL=postgresql://user:password@host:5432/dbname
+
+# ── Auth ─────────────────────────────────────────────────────
+BETTER_AUTH_SECRET=                                # * openssl rand -hex 32
+
+# Google OAuth (optional)
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+
+# ── AI — pick ONE provider ───────────────────────────────────
+# Set LLM_PROVIDER to one of:
+#   azure-openai | azure-foundry | openai | anthropic | bedrock | vertex | fireworks | xai | openrouter
+# If LLM_PROVIDER is not set, the first provider whose key is present wins
+# (priority: azure-openai → anthropic → openai → bedrock → vertex → fireworks → xai → azure-foundry → openrouter)
+
+# LLM_PROVIDER=openrouter                          # explicit selection (optional)
+
+# Azure OpenAI
+# AZURE_OPENAI_API_KEY=...
+# AZURE_OPENAI_RESOURCE_NAME=my-resource           # part before .openai.azure.com
+# AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini              # deployment name in Azure portal
+
+# Azure AI Foundry (non-OpenAI models: DeepSeek, Llama, Cohere, etc.)
+# AZURE_FOUNDRY_ENDPOINT=https://<resource>.services.ai.azure.com/models
+# AZURE_FOUNDRY_API_KEY=...
+# AZURE_FOUNDRY_MODEL=gpt-4o-mini                  # deployment name
+
+# OpenAI
+# OPENAI_API_KEY=sk-...
+# OPENAI_MODEL=gpt-4o-mini                         # optional
+
+# Anthropic
+# ANTHROPIC_API_KEY=sk-ant-...
+# ANTHROPIC_MODEL=claude-haiku-4-5-20251001        # optional
+
+# AWS Bedrock
+# AWS_ACCESS_KEY_ID=...
+# AWS_SECRET_ACCESS_KEY=...
+# AWS_REGION=us-east-1                             # optional, default: us-east-1
+# BEDROCK_MODEL=anthropic.claude-3-5-haiku-20241022-v1:0  # optional
+
+# Google Vertex AI (uses Application Default Credentials or GOOGLE_APPLICATION_CREDENTIALS)
+# GOOGLE_VERTEX_PROJECT=my-gcp-project
+# GOOGLE_VERTEX_LOCATION=us-central1               # optional, default: us-central1
+# VERTEX_MODEL=gemini-2.0-flash                    # optional
+
+# Fireworks AI
+# FIREWORKS_API_KEY=...
+# FIREWORKS_MODEL=accounts/fireworks/models/llama-v3p3-70b-instruct  # optional
+
+# xAI Grok
+# XAI_API_KEY=...
+# XAI_MODEL=grok-3-mini                            # optional
+
+# OpenRouter (100+ models, BYOK supported)
+OPENROUTER_API_KEY=sk-or-...                       # * if using OpenRouter
+OPENROUTER_MODEL=google/gemini-2.0-flash-exp:free  # optional
+
+# ── Image Storage / Cloudflare R2 ────────────────────────────
+R2_ACCOUNT_ID=abc123                               # * required
+R2_ACCESS_KEY_ID=...                               # * required
+R2_SECRET_ACCESS_KEY=...                           # * required
+R2_BUCKET_NAME=my-chat-app                         # * required
+R2_PUBLIC_URL=https://assets.yourdomain.com        # * required — custom domain on R2
+
+# ── Locale / i18n ────────────────────────────────────────────
+APP_LOCALE=en                                      # en | id | kr | jp — server-wide default
+                                                   # Per-user locale overrides this via DB
+
+# ── Background Jobs / Trigger.dev ────────────────────────────
+TRIGGER_SECRET_KEY=tr_dev_...                      # * required
+
+# ── MCP Tools (optional) ─────────────────────────────────────
+# MCP_URL      = any MCP server (Rails, Laravel, Spring, etc.) — tool call only
+# MCP_APPS_URL = TypeScript MCP server — tool call + embedded UI (MCP Apps)
+# Leave empty to run chat without tools.
+# MCP_URL=https://your-backend.com/mcp
+# MCP_TOKEN=your-bearer-token
+# MCP_APPS_URL=https://your-ts-mcp-server.com/mcp
+# MCP_APPS_TOKEN=your-bearer-token
+# MCP_JWT_SECRET=     # openssl rand -hex 32 — shared secret for JWT user identity
+
+# ── Email / Resend (optional) ────────────────────────────────
+# RESEND_API_KEY=re_...
+# RESEND_FROM=noreply@yourdomain.com
+
+# ── Dev Tunnel / Preview Origins (optional) ──────────────────
+# ALLOWED_DEV_ORIGINS=https://xxxx.ngrok-free.app
+
+# ── Sentry (optional) ────────────────────────────────────────
+# NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/...
+# SENTRY_ORG=your-org
+# SENTRY_PROJECT=your-project
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Provider selection:** Set `LLM_PROVIDER` explicitly to choose a provider. If unset, the app auto-detects based on which API key is present. OpenRouter is the final fallback.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Vertex AI auth:** Vertex uses [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials). On a VM/GKE this is automatic. On a VPS, set `GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> **OpenRouter free models:** Models with `:free` suffix require the data policy to be enabled at [openrouter.ai/settings/privacy](https://openrouter.ai/settings/privacy).
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Quick Start
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# 1. Clone
+git clone https://github.com/your-org/chat.git
+cd chat
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 2. Install dependencies
+npm install
 
-## Deploy on Vercel
+# 3. Create .env.local
+cp .env.example .env.local
+# Edit .env.local with your values
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# 4. Generate Prisma client and create the database
+npm run db:generate
+npm run db:push
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# 5. Start the dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000), register a new account, and start chatting.
+
+---
+
+## Development
+
+### Scripts
+
+```bash
+npm run dev             # Start dev server with hot reload
+npm run build           # Production build
+npm run start           # Run the production build
+
+npm run check           # Biome: lint + format
+npm run lint            # Biome: lint only
+npm run format          # Biome: format only
+
+npm run test            # Vitest in watch mode
+npm run test:run        # Vitest single run
+npm run test:coverage   # Vitest with coverage report
+npm run test:e2e        # Playwright e2e tests
+npm run test:e2e:ui     # Playwright with UI mode
+
+npm run db:generate     # Generate Prisma client from schema
+npm run db:push         # Sync schema to DB without migration file (dev only)
+npm run db:migrate      # Create and apply a migration file
+npm run db:studio       # Open Prisma Studio in the browser
+
+npm run trigger:dev       # Run Trigger.dev dev worker
+npm run trigger:deploy    # Deploy Trigger.dev tasks to production
+```
+
+### Project Structure
+
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── auth/[...all]/            # Better Auth catch-all handler
+│   │   ├── chat/                     # POST — stream LLM response
+│   │   ├── distance/                 # POST — Google Maps distance proxy (v2 location)
+│   │   ├── messages/                 # GET — cursor-paginated message history
+│   │   ├── upload/                   # POST — upload image to R2
+│   │   │   └── heartbeat/            # PATCH — refresh pending image TTL
+│   │   ├── user/locale/              # PATCH — save user locale preference
+│   │   └── conversations/
+│   │       ├── route.ts              # GET, POST
+│   │       └── [id]/route.ts         # DELETE
+│   ├── chat/[id]/                    # Conversation page
+│   ├── login/
+│   ├── register/
+│   ├── settings/
+│   ├── forgot-password/
+│   ├── reset-password/
+│   └── verify-email/
+├── components/
+│   ├── chat/
+│   │   ├── ChatClient.tsx            # Coordinator: useChat, pagination, submit logic
+│   │   ├── ChatInput.tsx             # Textarea, attach menu, image/location previews
+│   │   ├── MessageList.tsx           # Scroll container, messages, skeleton, empty state
+│   │   ├── ImageUploadButton.tsx     # Standalone button or menu item (asMenuItem prop)
+│   │   ├── LocationBubble.tsx        # Map preview bubble for location/commute parts
+│   │   ├── LocationDialog.tsx        # Place search + commute calculator dialog
+│   │   ├── PlaceSearchField.tsx      # Autocomplete input for Google Places
+│   │   ├── LeafletMapInner.tsx       # Leaflet map (dynamic import, SSR disabled)
+│   │   └── location-types.ts        # LocationPart, CommutePart, LocationPlace types
+│   ├── layout/
+│   │   └── ChatLayout.tsx            # Sidebar + conversation state management
+│   ├── providers/
+│   │   ├── LocaleProvider.tsx        # Context provider — wraps app, exposes useLocale()
+│   │   └── gtm.tsx                   # Google Tag Manager script injection
+│   ├── settings/
+│   │   └── SettingsClient.tsx        # Profile, email change, password, delete account
+│   └── ui/                           # shadcn/ui primitives (alert-dialog, button, etc.)
+├── hooks/
+│   ├── use-image-heartbeat.ts        # Pings heartbeat every 15 min while image is pending
+│   ├── use-mobile.ts                 # Detects touch-screen devices
+│   └── use-place-autocomplete.ts     # Google Places autocomplete with debounce
+├── lib/
+│   ├── app-config.ts                 # Single source of truth for branding + feature flags
+│   ├── auth-client.ts                # Better Auth client
+│   ├── auth.ts                       # Better Auth server config
+│   ├── compress-image.ts             # Client-side image compression before upload
+│   ├── db.ts                         # Prisma singleton
+│   ├── id.ts                         # UUID v7 generator
+│   ├── llm.ts                        # LLM provider resolver — resolveModel() with 9 providers
+│   ├── locale.ts                     # Geo detection (IPinfo Lite) + resolveUserLocale()
+│   ├── rate-limit.ts                 # In-memory rate limiter
+│   ├── schemas.ts                    # Zod validation schemas
+│   ├── storage.ts                    # R2 / S3 client
+│   └── utils.ts                      # cn() and shared utilities
+├── locales/
+│   ├── index.ts                      # Loader — exports Locale, UILocale types + locales map
+│   ├── en.ts                         # English — system prompts + all UI strings
+│   ├── id.ts                         # Bahasa Indonesia
+│   ├── kr.ts                         # 한국어
+│   └── jp.ts                         # 日本語
+├── trigger/
+│   ├── cleanup-orphan-images.ts      # Hourly: delete orphaned images > 1 hour old
+│   ├── cleanup-old-conversations.ts  # Daily: delete conversations > 30 days old
+│   └── index.ts
+└── tests/
+    ├── setup.ts
+    ├── __mocks__/
+    │   └── server-only.ts            # No-op mock — bypasses server-only guard in Vitest
+    ├── unit/
+    │   ├── id.test.ts
+    │   ├── locale.test.ts
+    │   ├── rate-limit.test.ts
+    │   └── schemas.test.ts
+    └── e2e/
+        ├── auth.spec.ts
+        └── chat.spec.ts
+```
+
+### Database Migrations
+
+| Rails | Prisma |
+|---|---|
+| Edit `app/models/` | Edit `prisma/schema.prisma` |
+| `rails generate migration AddFoo` | `npm run db:migrate` |
+| `rails db:migrate` | `npm run db:migrate` |
+| `rails db:migrate` (production) | `npx prisma migrate deploy` |
+| `rails db:schema:load` | `npm run db:push` (dev only) |
+| `rails db:rollback` | Write a new migration that reverses the change |
+
+```bash
+# Add a new column or table
+# 1. Edit prisma/schema.prisma
+# 2. Create and apply migration
+npm run db:migrate
+# 3. Apply in production
+npx prisma migrate deploy
+```
+
+### Image Uploads (Cloudflare R2)
+
+Images are uploaded server-side through `POST /api/upload`. When the LLM needs to analyse an image, the Next.js server fetches it from R2 and sends it as binary (`Uint8Array`) to the LLM provider — this avoids timeout issues that occur when the provider tries to fetch the R2 URL directly from its own network.
+
+**R2 bucket setup:**
+
+1. Create a bucket in the [Cloudflare dashboard](https://dash.cloudflare.com)
+2. Connect a custom domain: R2 → bucket → Settings → Custom Domains
+3. Create an API token with **Object Read & Write** permissions
+4. Fill in the five `R2_*` environment variables
+
+**CORS configuration** (Cloudflare dashboard → R2 → bucket → Settings → CORS):
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://yourdomain.com"],
+    "AllowedMethods": ["GET"],
+    "AllowedHeaders": ["*"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+**Orphan image lifecycle:**
+
+- Upload creates an `Image` record with `messageId: null`
+- While pending, a heartbeat refreshes `lastSeenAt` every **15 minutes**
+- On submit, `messageId` is set — the image is permanently attached
+- If never submitted, it is auto-deleted from R2 and DB after **1 hour**
+- If expired before submit, server returns `410 Gone` and the UI prompts re-upload
+
+### Background Jobs (Trigger.dev)
+
+Jobs live in `src/trigger/` and run on Trigger.dev's infrastructure. All tasks use `concurrencyLimit: 1` to stay within the free tier (5 concurrent runs).
+
+| Task | Schedule | Action |
+|---|---|---|
+| `cleanup-orphan-images` | Every hour | Delete `Image` rows with `messageId IS NULL` and `lastSeenAt` > 1h; remove R2 objects |
+| `cleanup-old-conversations` | Daily 00:00 UTC | Delete conversations `updatedAt` > 30d, including messages and R2 images |
+
+#### First-time setup
+
+```bash
+# 1. Install Trigger.dev packages
+npm install @trigger.dev/sdk @trigger.dev/build
+
+# 2. Initialise — links this repo to your Trigger.dev project
+npx trigger.dev@latest init
+# When prompted, select your project and point tasks dir to: src/trigger
+
+# 3. Set your project ref in trigger.config.ts
+#    Find it at: Dashboard → your project → Settings → Project ref
+```
+
+```ts
+// trigger.config.ts
+export default defineConfig({
+  project: "proj_your_project_ref",  // <-- replace this
+  dirs: ["./src/trigger"],
+  // ...
+});
+```
+
+```bash
+# 4. Add secret key to .env.local
+# Get from: Dashboard → your project → API keys
+TRIGGER_SECRET_KEY=tr_dev_...
+```
+
+#### Local development
+
+```bash
+# Run in a separate terminal alongside npm run dev
+npm run trigger:dev
+```
+
+This opens a tunnel so the worker can receive jobs locally. To trigger a task manually: Dashboard → Tasks → select task → Test.
+
+#### Deploy to production
+
+```bash
+npm run trigger:deploy
+```
+
+Trigger.dev manages worker infrastructure — no server-side worker process is needed. Run this from your local machine or CI pipeline whenever task code changes.
+
+> **Data retention:** Conversations inactive for more than 30 days are permanently deleted. A notice is shown on the Settings page.
+
+### Locale & i18n
+
+The app ships with a lightweight custom locale system covering both AI system prompts and all UI strings (buttons, errors, labels, toasts). No third-party i18n library is needed — locale files are plain TypeScript objects with full type safety.
+
+Supported languages: **English** (`en`), **Bahasa Indonesia** (`id`), **한국어** (`kr`), **日本語** (`jp`).
+
+#### How it works
+
+User locale is resolved in this priority order:
+
+1. `user.locale` in DB — set automatically on register, overridable in Settings
+2. `APP_LOCALE` env — server-wide default set by sysadmin
+3. `"en"` — hard fallback
+
+`resolveUserLocale()` returns `{ t, ui, locale }`:
+- `t` — full `Locale` object (used in `route.ts` for AI system prompts via `t.system.*`)
+- `ui` — `UILocale` shorthand (used in Server Components for UI strings via `ui.meta`, `ui.verifyEmail`, etc.)
+
+Client Components use the `useLocale()` hook which returns `{ t: UILocale, locale }` — `t` here is already the `ui` subtree, so access is direct: `t.settings`, `t.chatLayout`, etc.
+
+On register, the server detects locale via:
+1. **IP geolocation** — `ipinfo.io/{ip}/country` (IPinfo Lite: free, no API key, IPv4 + IPv6)
+2. **Accept-Language header** — browser language as fallback if geo fails or IP is local
+3. **APP_LOCALE env** — final fallback
+
+#### Adding a new locale
+
+1. Create `src/locales/xx.ts` following the structure of `en.ts`:
+
+```ts
+// src/locales/xx.ts
+export default {
+  system: {
+    persona: (name: string) => `You are a helpful personal AI assistant for ${name}.`,
+    helpWithTools: "Help the user by using the available tools when relevant.",
+    tone: "Always respond in [language], in a friendly and concise manner.",
+    proactiveTools:
+      "When the user requests an action or data that a tool can handle, call the tool immediately without asking for confirmation.",
+    imageUrlTag: "...",
+    imageUrlUsage: "...",
+    imageUrlToolHint: "...",
+    analyseImage: "...",
+    currentTime: (dt: string) => `The current time is ${dt}.`,
+    timezone: (tz: string) => `The user's timezone is ${tz}.`,
+  },
+  ui: {
+    // ... (copy en.ts ui object and translate all strings)
+  },
+} as const;
+```
+
+2. Register in `src/locales/index.ts`:
+
+```ts
+import xx from "./xx";
+const locales: Record<string, Locale> = { en, id, kr, jp, xx };
+```
+
+3. Add the country → locale mapping in `src/lib/locale.ts`:
+
+```ts
+const COUNTRY_TO_LOCALE: Record<string, string> = {
+  ID: "id",
+  KR: "kr",
+  JP: "jp",
+  XX: "xx",  // ← add this
+};
+```
+
+4. Add the Accept-Language mapping in the same file:
+
+```ts
+const langToLocale: Record<string, string> = {
+  id: "id",
+  ko: "kr",
+  ja: "jp",
+  xx: "xx",  // ← add this
+};
+```
+
+5. Add the display name to `localeOptions` in **all existing locale files** (`en.ts`, `id.ts`, `kr.ts`, `jp.ts`):
+
+```ts
+localeOptions: {
+  en: "English",
+  id: "Bahasa Indonesia",
+  kr: "한국어 (Korean)",
+  jp: "日本語 (Japanese)",
+  xx: "New Language",  // ← add here in all files
+},
+```
+
+The Settings dropdown renders dynamically from `localeOptions` — no component changes needed.
+
+TypeScript enforces the `Locale` type contract — if a key is missing in a new locale file, the compiler will error.
+
+#### Custom locale vs i18next
+
+| | This system | i18next |
+|---|---|---|
+| Purpose | AI system prompts + all UI strings | Full UI i18n with plurals, date formatting, namespaces |
+| Bundle size | Zero — plain TS imports | ~30KB + plugins |
+| Type safety | ✅ Full — `Locale` type contract | ⚠️ Partial — requires `i18next-typescript` plugin |
+| Interpolation | Native TypeScript functions `(name: string) => \`...\`` | `t("key", { name })` string-based |
+| Plurals / dates | ❌ Not needed for this use case | ✅ Built-in |
+| Per-user locale | ✅ DB column + geo detection | Requires manual integration |
+| Adding a locale | 1 TS file + 3 map entries | 1 JSON file, no registration needed |
+| Hot reload | ❌ Requires redeploy | ✅ Can reload at runtime |
+
+**When to stay with this system:** All user-facing text — buttons, errors, form labels, toasts — is already covered by the locale files. The LLM generates responses in the detected language, and the system prompt is also localised.
+
+**When to migrate to i18next:** If you need plural rules, date/number formatting, or runtime locale switching without a full server re-render.
+
+### Connecting an MCP Server
+
+Two optional endpoints — set one or both, leave empty to run without tools:
+
+```bash
+# Option A — agnostic MCP server (Rails, Laravel, Spring, etc.) — tool call only
+MCP_URL=https://your-backend.com/mcp
+MCP_TOKEN=your-bearer-token         # optional Bearer token
+
+# Option B — TypeScript MCP server — tool call + embedded UI (MCP Apps)
+MCP_APPS_URL=https://your-ts-mcp-server.com/mcp
+MCP_APPS_TOKEN=your-bearer-token    # optional Bearer token
+
+# Shared JWT secret — used to sign short-lived user identity tokens (30s)
+# Required if MCP server needs to identify the current user
+MCP_JWT_SECRET=                     # openssl rand -hex 32
+```
+
+If neither is set, chat works normally without tools. Tools from both endpoints are merged automatically if both are set.
+
+> **Transport:** The MCP server must support **Streamable HTTP** (MCP spec 2025-03-26). `route.ts` uses `type: "http"`.
+
+---
+
+## Deployment
+
+### Docker Compose + Nginx + Let's Encrypt
+
+Suitable for a VPS. This setup runs the app, PostgreSQL, Nginx as a reverse proxy, and Certbot for automatic SSL.
+
+#### Directory layout on the server
+
+```
+/opt/chat/
+├── docker-compose.yml
+├── .env
+├── nginx/
+│   └── conf.d/
+│       └── app.conf
+└── certbot/
+    ├── conf/       # Let's Encrypt certificates (persisted volume)
+    └── www/        # ACME challenge webroot
+```
+
+#### `docker-compose.yml`
+
+```yaml
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD}@db:5432/app_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: app_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - app
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Run manually — see SSL setup below
+
+volumes:
+  postgres_data:
+```
+
+#### `nginx/conf.d/app.conf`
+
+```nginx
+# HTTP — ACME challenge + redirect to HTTPS
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+
+    ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass         http://app:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # Required for LLM SSE streaming
+        proxy_buffering    off;
+        proxy_read_timeout 300s;
+    }
+}
+```
+
+#### `.env` (server only — never commit)
+
+```bash
+# App
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
+NEXT_PUBLIC_APP_NAME="Your App Name"
+DATABASE_PROVIDER=postgresql
+BETTER_AUTH_SECRET=   # openssl rand -hex 32
+
+# AI persona (optional)
+APP_PERSONA_CONTEXT=your service domain here
+
+# AI — set the key for your chosen provider; LLM_PROVIDER is optional (auto-detected)
+# See .env.example for all provider options
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4o-mini
+
+# Database
+POSTGRES_PASSWORD=    # strong random password
+
+# Storage
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+R2_PUBLIC_URL=
+
+# Jobs
+TRIGGER_SECRET_KEY=
+
+# Email (optional)
+RESEND_API_KEY=
+RESEND_FROM=
+```
+
+#### First deploy
+
+```bash
+# 1. SSH to server and clone
+git clone https://github.com/your-org/chat.git /opt/chat
+cd /opt/chat
+
+# 2. Fill in .env
+cp .env.example .env
+nano .env
+
+# 3. Create certbot directories
+mkdir -p certbot/conf certbot/www nginx/conf.d
+
+# 4. Add nginx config (see above), then start services
+docker compose up -d app db nginx
+
+# 5. Obtain SSL certificate
+docker compose run --rm certbot certonly \
+  --webroot --webroot-path /var/www/certbot \
+  --email admin@yourdomain.com \
+  --agree-tos --no-eff-email \
+  -d yourdomain.com
+
+# 6. Download Nginx SSL recommended params (run once)
+docker compose exec nginx sh -c "
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf \
+    > /etc/letsencrypt/options-ssl-nginx.conf &&
+  openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048"
+
+# 7. Reload Nginx to activate HTTPS
+docker compose exec nginx nginx -s reload
+
+# 8. Run database migrations
+docker compose exec app npx prisma migrate deploy
+```
+
+#### Certificate renewal
+
+```bash
+# Add to crontab (renew on 1st and 15th of each month at 3am)
+crontab -e
+0 3 1,15 * * cd /opt/chat && docker compose run --rm certbot renew && docker compose exec nginx nginx -s reload
+```
+
+#### Updating the app
+
+```bash
+cd /opt/chat
+git pull
+docker compose up -d --build app
+docker compose exec app npx prisma migrate deploy   # only if new migrations
+```
+
+---
+
+### Dockerfile
+
+Add this file to the project root, and add `output: "standalone"` to `next.config.ts`.
+
+```dockerfile
+FROM node:20-alpine AS base
+
+FROM base AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run db:generate
+RUN npm run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/src/generated ./src/generated
+
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
+```
+
+```ts
+// next.config.ts
+const nextConfig: NextConfig = {
+  output: "standalone",
+};
+```
+
+---
+
+### Dokku
+
+Suitable for a self-hosted PaaS on a single VPS. Dokku handles builds, deploys, process management, and SSL automatically.
+
+#### 1. Server setup
+
+```bash
+# Create the app
+dokku apps:create chat
+
+# PostgreSQL
+sudo dokku plugin:install https://github.com/dokku/dokku-postgres.git
+dokku postgres:create chat-db
+dokku postgres:link chat-db chat
+
+# Environment variables
+dokku config:set chat \
+  NODE_ENV=production \
+  NEXT_PUBLIC_APP_URL=https://chat.yourdomain.com \
+  DATABASE_PROVIDER=postgresql \
+  BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
+  TRIGGER_SECRET_KEY=tr_live_... \
+  R2_ACCOUNT_ID=... \
+  R2_ACCESS_KEY_ID=... \
+  R2_SECRET_ACCESS_KEY=... \
+  R2_BUCKET_NAME=my-chat-app \
+  R2_PUBLIC_URL=https://assets.yourdomain.com
+
+# AI persona (optional)
+dokku config:set chat APP_PERSONA_CONTEXT="your service domain here"
+
+# Azure (recommended)
+dokku config:set chat \
+  AZURE_OPENAI_API_KEY=... \
+  AZURE_OPENAI_RESOURCE_NAME=my-resource \
+  AZURE_OPENAI_DEPLOYMENT=gpt-5-mini
+
+# Or OpenRouter
+dokku config:set chat \
+  OPENROUTER_API_KEY=sk-or-... \
+  OPENROUTER_MODEL=openai/gpt-4o-mini
+
+# Domain and SSL
+dokku domains:set chat chat.yourdomain.com
+sudo dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+dokku letsencrypt:set chat email admin@yourdomain.com
+dokku letsencrypt:enable chat
+dokku letsencrypt:cron-job --add   # auto-renew
+```
+
+#### 2. Deploy from local machine
+
+```bash
+git remote add dokku dokku@yourdomain.com:chat
+git push dokku main
+```
+
+Dokku detects Next.js, runs `npm run build`, then `npm run start`.
+
+#### 3. Run migrations
+
+```bash
+dokku run chat npx prisma migrate deploy
+```
+
+#### 4. Updates
+
+```bash
+git push dokku main
+dokku run chat npx prisma migrate deploy   # only if new migrations
+```
+
+#### Buildpack (if not auto-detected)
+
+```bash
+dokku buildpacks:set chat https://github.com/heroku/heroku-buildpack-nodejs
+```
+
+---
+
+## Production Notes
+
+- **SQLite is not recommended for production** with multiple app instances — use PostgreSQL.
+- **Rate limiting is in-memory** — not shared across replicas. For multi-instance deployments, use Redis-based rate limiting.
+- **MCP connections are per-request** — each chat request opens and closes a connection. Ensure your MCP server handles concurrent connections.
+- **Nginx `proxy_buffering off`** is required — without it, SSE streaming is buffered and users see no output until the full response completes.
+- **Nginx `proxy_read_timeout 300s`** is required — reasoning models can take up to a minute. The default 60s timeout will cut connections prematurely.
+- **Trigger.dev tasks run on Trigger.dev infrastructure** — no worker process on your server. Re-deploy tasks with `npx trigger.dev@latest deploy` after changing task code, separately from the Next.js app deploy.
+- **Image uploads require all five `R2_*` env vars.** If any are missing, the upload endpoint returns `503` and the attach button is hidden.
+- **Sentry, Resend, and MCP are all optional** — the app runs without any of them.
