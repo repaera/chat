@@ -1,7 +1,7 @@
 "use client";
 import { appConfig } from "@/lib/app-config";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -54,14 +54,36 @@ type Conversation = {
 
 type Props = {
   user: { name: string; email: string };
-  conversations: Conversation[];
   activeConversationId: string | null;
 };
+
+// ── Skeleton rows shown while the first page is loading ───────────────────
+function ConvoSkeleton() {
+  return (
+    <div className="px-2 pt-1">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-1.5 px-2 py-2.5">
+          <div
+            className="h-3 rounded bg-sidebar-accent animate-pulse"
+            style={{ width: `${55 + (i % 3) * 15}%` }}
+          />
+          <div
+            className="h-2.5 rounded bg-sidebar-accent/50 animate-pulse"
+            style={{ width: `${35 + (i % 4) * 10}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function AppSidebar({
   user,
   conversations,
   activeConversationId,
+  isLoadingConvos,
+  isFetchingMore,
+  sentinelRef,
   onDeleteConversation,
   onSelectConversation,
   onNewChat,
@@ -69,6 +91,9 @@ function AppSidebar({
   user: Props["user"];
   conversations: Conversation[];
   activeConversationId: string | null;
+  isLoadingConvos: boolean;
+  isFetchingMore: boolean;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
   onDeleteConversation: (id: string) => void;
   onSelectConversation: (id: string) => void;
   onNewChat: () => void;
@@ -100,24 +125,26 @@ function AppSidebar({
             <Bot className="w-4 h-4" />
             <span className="text-sm font-semibold text-sidebar-foreground">{appConfig.name}</span>
           </div>
+          <div className="px-2 pb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground"
+              onClick={onNewChat}
+            >
+              <Plus className="w-4 h-4" />
+              {cl.newButton}
+            </Button>
+          </div>
         </SidebarHeader>
 
         {/* Conversation list */}
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
-              <div className="px-2 pb-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start gap-2 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                  onClick={onNewChat}
-                >
-                  <Plus className="w-4 h-4" />
-                  {cl.newButton}
-                </Button>
-              </div>
-              {conversations.length === 0 ? (
+              {isLoadingConvos ? (
+                <ConvoSkeleton />
+              ) : conversations.length === 0 ? (
                 <p className="px-4 py-6 text-center text-xs text-sidebar-foreground/40">
                   {cl.emptyState}
                 </p>
@@ -149,6 +176,15 @@ function AppSidebar({
                       </SidebarMenuAction>
                     </SidebarMenuItem>
                   ))}
+
+                  {/* Infinite scroll sentinel */}
+                  <div ref={sentinelRef} className="h-1" />
+
+                  {isFetchingMore && (
+                    <div className="flex justify-center py-3">
+                      <span className="text-xs text-sidebar-foreground/30 animate-pulse">•••</span>
+                    </div>
+                  )}
                 </SidebarMenu>
               )}
             </SidebarGroupContent>
@@ -214,24 +250,82 @@ function AppSidebar({
   );
 }
 
-export default function ChatLayout({
-  user,
-  conversations: initialConversations,
-  activeConversationId,
-}: Props) {
+export default function ChatLayout({ user, activeConversationId }: Props) {
   const { t } = useLocale();
   const cl = t.chatLayout;
 
-  const [conversations, setConversations] = useState(initialConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoadingConvos, setIsLoadingConvos] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
   const [currentId, setCurrentId] = useState(activeConversationId);
   const [chatKey, setChatKey] = useState(activeConversationId ?? "root");
   const [justCreated, setJustCreated] = useState(false);
 
-  // NO useEffect to sync `activeConversationId`.
-  // ChatLayout is remounted by Next.js on hard navigation to /chat/[id],
-  // so the useState initial value is already correct from the server.
-  // A useEffect here would trigger a remount of ChatClient when the URL changes via replaceState.
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // Stable ref for load-more state — avoids stale closures in the observer callback
+  const loadMoreStateRef = useRef({ hasMore, isFetchingMore, conversations });
+  useEffect(() => {
+    loadMoreStateRef.current = { hasMore, isFetchingMore, conversations };
+  }, [hasMore, isFetchingMore, conversations]);
+
+  // ── Initial fetch ────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/conversations")
+      .then((r) => r.json())
+      .then((data: { conversations: Conversation[]; hasMore: boolean }) => {
+        setConversations(
+          data.conversations.map((c) => ({ ...c, updatedAt: new Date(c.updatedAt) })),
+        );
+        setHasMore(data.hasMore);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingConvos(false));
+  }, []);
+
+  // ── Load more (cursor pagination) ────────────────────────────────────────
+  const loadMoreConversations = useCallback(async () => {
+    const state = loadMoreStateRef.current;
+    if (!state.hasMore || state.isFetchingMore) return;
+
+    setIsFetchingMore(true);
+    loadMoreStateRef.current.isFetchingMore = true; // optimistic lock
+
+    const cursor = state.conversations.at(-1)?.updatedAt.toISOString();
+    if (!cursor) { setIsFetchingMore(false); return; }
+
+    try {
+      const res = await fetch(`/api/conversations?cursor=${encodeURIComponent(cursor)}`);
+      if (res.ok) {
+        const data: { conversations: Conversation[]; hasMore: boolean } = await res.json();
+        setConversations((prev) => [
+          ...prev,
+          ...data.conversations.map((c) => ({ ...c, updatedAt: new Date(c.updatedAt) })),
+        ]);
+        setHasMore(data.hasMore);
+      }
+    } catch {
+      // silently ignore — user can scroll again to retry
+    } finally {
+      setIsFetchingMore(false);
+    }
+  }, []);
+
+  // ── IntersectionObserver — fires when sentinel enters view ───────────────
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMoreConversations();
+      },
+      { threshold: 0 },
+    );
+    if (sentinelRef.current) observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadMoreConversations]);
+
+  // ── Conversation handlers ─────────────────────────────────────────────────
   const handleDeleteConversation = async (id: string) => {
     const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
     if (!res.ok) {
@@ -242,30 +336,33 @@ export default function ChatLayout({
     toast.success(cl.toasts.deleteSuccess);
     if (currentId === id) {
       setCurrentId(null);
-      setChatKey("root"); // force remount to a clean state
+      setChatKey("root");
       window.history.replaceState({}, "", "/");
     }
   };
 
   return (
     <div className="flex h-svh overflow-hidden bg-background">
-      <SidebarProvider defaultOpen={false}>
+      <SidebarProvider defaultOpen={true}>
         <AppSidebar
           user={user}
           conversations={conversations}
           activeConversationId={currentId}
+          isLoadingConvos={isLoadingConvos}
+          isFetchingMore={isFetchingMore}
+          sentinelRef={sentinelRef}
           onDeleteConversation={handleDeleteConversation}
           onSelectConversation={(id) => {
             setJustCreated(false);
             setCurrentId(id);
             setChatKey(id);
-            window.history.pushState({}, '', `/chat/${id}`);
+            window.history.pushState({}, "", `/chat/${id}`);
           }}
           onNewChat={() => {
             setJustCreated(false);
             setCurrentId(null);
             setChatKey("root");
-            window.history.pushState({}, '', '/');
+            window.history.pushState({}, "", "/");
           }}
         />
 
@@ -295,7 +392,7 @@ export default function ChatLayout({
             )}
           </header>
 
-          {/* key={currentId} — force remount ChatClient when switching/deleting a conversation */}
+          {/* key={chatKey} — force remount ChatClient when switching/deleting a conversation */}
           {/* ensuring useChat state (messages) is clean; no old bubbles remain */}
           <ChatClient
             key={chatKey}
@@ -308,7 +405,7 @@ export default function ChatLayout({
               ]);
               setJustCreated(true);
               setCurrentId(newId); // update ID but DO NOT change chatKey — do not remount
-              window.history.replaceState({}, '', `/chat/${newId}`);
+              window.history.replaceState({}, "", `/chat/${newId}`);
             }}
           />
         </SidebarInset>

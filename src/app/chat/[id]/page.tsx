@@ -33,43 +33,15 @@ export default async function ConversationPage({ params }: Props) {
   // (Prisma does not allow include and select at the same level)
   const conversation = await db.conversation.findFirst({
     where: { id, userId: session.user.id },
-    select: {
-      id: true,
-      title: true,
-    },
+    select: { id: true, title: true },
   });
 
   if (!conversation) notFound();
 
-  const rawConversations = await db.conversation.findMany({
-    where: { userId: session.user.id },
-    orderBy: { updatedAt: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      title: true,
-      updatedAt: true,
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { content: true },
-      },
-    },
-  });
-
-  const conversations = rawConversations.map((c) => ({
-    id: c.id,
-    title: c.title,
-    updatedAt: c.updatedAt,
-    preview: c.messages[0]?.content ?? null,
-  }));
-
   return (
     <ChatLayout
       user={{ name: session.user.name ?? "User", email: session.user.email }}
-      conversations={conversations}
       activeConversationId={id}
-
     />
   );
 }

@@ -1,28 +1,33 @@
 import { headers } from "next/headers";
-import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { newId } from "@/lib/id";
 import { createConversationSchema } from "@/lib/schemas";
 
+const PAGE_SIZE = 10;
+
 // ── GET /api/conversations ────────────────────────────────────
-// List all conversations belonging to the currently logged-in user,
-// ordered by most recently updated.
-// Used by ChatLayout to refresh the sidebar after a new conversation is created.
-export async function GET() {
+// List conversations for the current user, ordered by most recently updated.
+// Supports cursor-based pagination: pass ?cursor=<updatedAt ISO> to get the next page.
+export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const cursor = searchParams.get("cursor");
+
   const raw = await db.conversation.findMany({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      ...(cursor ? { updatedAt: { lt: new Date(cursor) } } : {}),
+    },
     orderBy: { updatedAt: "desc" },
-    take: 50,
+    take: PAGE_SIZE,
     select: {
       id: true,
       title: true,
-      createdAt: true,
       updatedAt: true,
       messages: {
         orderBy: { createdAt: "desc" },
@@ -32,16 +37,14 @@ export async function GET() {
     },
   });
 
-  // Map to the shape expected by ChatLayout — preview is not messages[]
   const conversations = raw.map((c) => ({
     id: c.id,
     title: c.title,
-    createdAt: c.createdAt,
     updatedAt: c.updatedAt,
     preview: c.messages[0]?.content ?? null,
   }));
 
-  return Response.json({ conversations });
+  return Response.json({ conversations, hasMore: raw.length === PAGE_SIZE });
 }
 
 // ── POST /api/conversations ───────────────────────────────────
