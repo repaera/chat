@@ -268,7 +268,7 @@ curl -fsSL https://raw.githubusercontent.com/repaera/chat/main/install.sh | sudo
 The script will:
 - Install Docker and Docker Compose if not already present
 - Prompt for your domain, database choice (local PostgreSQL, local MySQL/MariaDB, or external/managed), LLM provider, R2 credentials, and other settings
-- Clone the repo, write `.env`, build the Docker image
+- Pull the pre-built Docker image from GHCR (or build from source if preferred)
 - Start the database (if local), run migrations, start the app and Nginx
 - Obtain a Let's Encrypt SSL certificate automatically (or configure Cloudflare proxy mode)
 - Set up a cron job for certificate renewal
@@ -515,6 +515,42 @@ npx trigger.dev@latest deploy
 Trigger.dev manages worker infrastructure — no server-side worker process is needed. Run this from your local machine or CI pipeline whenever task code changes.
 
 > **Data retention:** Conversations inactive for more than 30 days are permanently deleted. A notice is shown on the Settings page.
+
+### CI/CD (GitHub Actions)
+
+Three workflows live in `.github/workflows/`:
+
+| Workflow | Trigger | Action |
+|---|---|---|
+| `test.yml` | Called by other workflows | Biome lint, `tsc --noEmit`, Vitest unit tests |
+| `ci.yml` | Push to any non-main branch, PRs | Calls `test.yml` — validates before merge |
+| `publish.yml` | Push to `main`, semver tag push | Calls `test.yml`, then builds multi-arch Docker image → pushes to GHCR |
+
+**Image tags produced by `publish.yml`:**
+
+```
+# Every push to main
+ghcr.io/repaera/chat:latest
+ghcr.io/repaera/chat:a1b2c3d        # 7-char commit SHA
+
+# Semver tag push (git tag 0.1.0 && git push origin 0.1.0)
+ghcr.io/repaera/chat:latest
+ghcr.io/repaera/chat:a1b2c3d
+ghcr.io/repaera/chat:0.1.0
+```
+
+**Tagging a release:**
+
+```bash
+git add .
+git commit -m "feat: my changes"
+git push origin main           # triggers CI + publish → :latest + :<sha>
+
+git tag 0.1.0
+git push origin 0.1.0          # triggers publish → adds :0.1.0 tag to the same image
+```
+
+**One-time setup:** Repo → Settings → Actions → General → Workflow permissions → **Read and write**. After the first image is published, go to GitHub → Packages → the image → Package settings → **Change visibility → Public** if you want Render/Fly to pull it without auth.
 
 ### Locale & i18n
 
@@ -943,19 +979,19 @@ Render dashboard → your service → **Settings → Custom Domains** → add do
 
 Push to `main`. Render auto-deploys on every push. Migrations run automatically via `preDeployCommand`.
 
-#### Using a pre-built Docker Hub image
+#### Using the pre-built GHCR image
 
-> **Note:** An official public image has not been published yet. This section is here for when it becomes available — the guide will work as-is once the image exists.
-
-In `render.yaml`, replace `runtime: docker` + `dockerfilePath` with:
+Instead of building from source on Render, you can pull the pre-built image from GHCR. In `render.yaml`, replace `runtime: docker` + `dockerfilePath` with:
 
 ```yaml
 services:
   - type: web
     name: chat
     image:
-      url: docker.io/repaera/chat:latest
+      url: ghcr.io/repaera/chat:latest
 ```
+
+To pin a specific release: `ghcr.io/repaera/chat:0.1.0`
 
 ---
 
@@ -1017,16 +1053,16 @@ fly deploy
 
 Migrations run automatically via `[deploy] release_command` in `fly.toml`.
 
-#### Using a pre-built Docker Hub image
+#### Using the pre-built GHCR image
 
-> **Note:** An official public image has not been published yet. This section is here for when it becomes available — the guide will work as-is once the image exists.
-
-In `fly.toml`, replace `[build] dockerfile` with:
+Instead of building from source on Fly, you can pull the pre-built image. In `fly.toml`, replace `[build] dockerfile` with:
 
 ```toml
 [build]
-  image = "repaera/chat:latest"
+  image = "ghcr.io/repaera/chat:latest"
 ```
+
+To pin a specific release: `ghcr.io/repaera/chat:0.1.0`
 
 ---
 

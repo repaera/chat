@@ -220,6 +220,19 @@ Chat continues normally if neither is set.
 
 ---
 
+## CI/CD
+
+Three GitHub Actions workflows in `.github/workflows/`:
+- **`test.yml`** — reusable (`workflow_call`): Biome CI, `tsc --noEmit`, Vitest
+- **`ci.yml`** — push to non-main branches + PRs: calls `test.yml`
+- **`publish.yml`** — push to `main` or semver tag: calls `test.yml` then builds multi-arch image → GHCR
+
+Image: `ghcr.io/repaera/chat:latest` | `:<7-char-sha>` | `:<semver>` (on tag push)
+
+Tagging a release: `git tag 0.1.0 && git push origin 0.1.0` — no `v` prefix.
+
+---
+
 ## Commands
 
 ```bash

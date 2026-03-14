@@ -125,6 +125,17 @@ Any change to the upload flow must preserve this invariant:
 
 ---
 
+## CI/CD
+
+- **`test.yml`** — reusable workflow: Biome CI, `tsc --noEmit`, Vitest unit tests
+- **`ci.yml`** — runs on non-main branch push + PRs
+- **`publish.yml`** — runs on push to `main` or semver tag; tests must pass before image is built
+- Image published to `ghcr.io/repaera/chat` — tags: `:latest`, `:<7-char-sha>`, `:<semver>` (tag push only)
+- Semver tags have **no `v` prefix**: `0.1.0` not `v0.1.0`
+- `publish.yml` calls `test.yml` as a prerequisite job — a failing test blocks the image push
+
+---
+
 ## Adding a New Feature Checklist
 
 - [ ] Read all files you will touch
