@@ -271,9 +271,9 @@ export default function ChatLayout({
 
         <SidebarInset className="flex flex-col min-h-0 overflow-hidden">
           {/* Topbar — trigger + active title */}
-          <header className="flex h-12 shrink-0 items-center gap-2 px-3 z-10">
-            <SidebarTrigger className="size-7 md:size-9" />
-            <p className="truncate text-sm font-medium text-muted-foreground flex-1">
+          <header className="flex h-12 md:h-14 shrink-0 items-center gap-2 px-3 z-10">
+            <SidebarTrigger className="h-7 w-7 md:h-9 md:w-9 md:[&_svg]:size-5!" />
+            <p className="truncate text-sm md:text-base font-medium text-muted-foreground flex-1 self-center">
               {currentId
                 ? (() => {
                     const activeConv = conversations.find((c) => c.id === currentId);
@@ -283,10 +283,10 @@ export default function ChatLayout({
                 : appConfig.name}
             </p>
             {appConfig.helpCenterUrl && (
-              <Button variant="ghost" asChild className="shrink-0 h-8 w-8 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" asChild className="shrink-0 h-8 w-8 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground self-center">
                 <a href={appConfig.helpCenterUrl} target="_blank" rel="noopener noreferrer" aria-label="Help center">
-                  <LifeBuoy className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="hidden md:inline text-sm">Help</span>
+                  <LifeBuoy className="size-4 md:size-5" />
+                  <span className="hidden md:inline text-sm md:text-base">Help</span>
                 </a>
               </Button>
             )}
