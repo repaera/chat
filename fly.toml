@@ -1,0 +1,43 @@
+# fly.toml — Fly.io deployment configuration
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# Initial setup (run once from your local machine):
+#   fly launch --no-deploy        # creates the app, updates app name below
+#   fly postgres create           # creates a managed Postgres cluster
+#   fly postgres attach <pg-app>  # sets DATABASE_URL secret automatically
+#   fly secrets set ...           # set remaining secrets (see README)
+#   fly deploy                    # first deploy
+
+app = "chat"          # replace with your app name from `fly launch`
+primary_region = "sin" # sin | nrt | syd | lax | iad | fra | ams — pick closest to users
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV         = "production"
+  DATABASE_PROVIDER = "postgresql"
+  PORT             = "3000"
+  HOSTNAME         = "0.0.0.0"
+
+# Run Prisma migrations before the new version goes live (zero-downtime)
+[deploy]
+  release_command = "npx prisma migrate deploy"
+
+[http_service]
+  internal_port       = 3000
+  force_https         = true
+  auto_stop_machines  = "stop"
+  auto_start_machines = true
+  min_machines_running = 1   # keep at least 1 warm; set 0 to scale to zero
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval     = "30s"
+    method       = "GET"
+    path         = "/"
+    timeout      = "5s"
+
+[[vm]]
+  size   = "shared-cpu-1x"
+  memory = "1gb"

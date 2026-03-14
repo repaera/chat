@@ -65,7 +65,7 @@ Instructions for any AI agent (Claude Code or otherwise) working on this codebas
 2. Mirror in all other locale files
 3. Reference in `route.ts` as `t.system.yourKey`
 
-**Never** use `NEXT_PUBLIC_APP_CHAT_HINT` or `NEXT_PUBLIC_APP_CHAT_SUGGESTIONS` for locale-specific text — they override all users regardless of locale.
+Chat hint and suggestion strings live in the locale files (`ui.emptyHint`, `ui.suggestions`) — there are no env var overrides for these.
 
 ---
 
@@ -99,7 +99,7 @@ Any change to the upload flow must preserve this invariant:
 ## Location Features
 
 - `locationMode: "v1"` — browser geolocation only, no external API
-- `locationMode: "v2"` — requires `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (client) + `GOOGLE_MAPS_SERVER_KEY` (server for distance)
+- `locationMode: "v2"` — requires `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (client, Places autocomplete) + `GOOGLE_MAPS_API_KEY` (server, Distance Matrix proxy)
 - Custom parts (`LocationPart`, `CommutePart`) flow: stored in `Message.customParts` as JSON → loaded back in `messages/route.ts` → converted to text in `route.ts` before LLM sees them
 - `LeafletMapInner.tsx` must always be `dynamic(() => ..., { ssr: false })` — Leaflet breaks SSR
 
@@ -107,7 +107,8 @@ Any change to the upload flow must preserve this invariant:
 
 ## MCP Tools
 
-- Tools from `MCP_URL` and `MCP_APPS_URL` are merged before `streamText`
+- Only **one** MCP endpoint is active at a time — `MCP_URL` OR `MCP_APPS_URL`, never both
+- Setting both returns a `500` misconfiguration error before any LLM call is made
 - MCP clients are closed in both `onError` and `onFinish` — always close in both
 - If a client fails to connect, log to Sentry and continue (chat works without tools)
 - JWT auth: if `MCP_JWT_SECRET` is set, a 30s JWT is injected as `X-User-Token` for user identity propagation
@@ -143,7 +144,7 @@ Any change to the upload flow must preserve this invariant:
 - Do not add `console.log` in production paths — use `Sentry.captureException` for errors
 - Do not hardcode English strings in the system prompt — use `t.system.*` locale keys
 - Do not add markdown rendering to `MessageList.tsx` text parts — current design uses plain text + `Linkify` intentionally
-- Do not import `lucide-react` or new icon libraries — the project uses emoji and minimal inline SVG
+- Do not add new icon libraries beyond `lucide-react` — the project uses lucide-react for all icons
 - Do not create barrel `index.ts` files
 - Do not add `// eslint-disable` comments — use Biome ignore syntax if truly needed
 - Do not skip `npm run check` before calling a task done

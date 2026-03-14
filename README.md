@@ -6,7 +6,7 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 
 ## Features
 
-- **MCP tool integration** — connects to one or two external MCP servers via Streamable HTTP; tools from both are merged automatically
+- **MCP tool integration** — connects to one external MCP server via Streamable HTTP; choose either `MCP_URL` (any backend) or `MCP_APPS_URL` (TypeScript + embedded UI) — setting both is rejected at runtime
 - **Deployment customization** — app name, AI persona context, and chat suggestions are all env-var driven; one codebase, multiple deployments
 - **Streaming AI responses** — real-time LLM output with typing indicators
 - **Image attachments** — attach images to messages; fetched server-side and sent as binary to the LLM
@@ -26,7 +26,7 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 |---|---|
 | Framework | Next.js 16 (App Router) |
 | UI | React 19, Tailwind CSS v4, shadcn/ui |
-| AI | Vercel AI SDK v5 (`ai`, `@ai-sdk/react`) |
+| AI | Vercel AI SDK v6 (`ai`, `@ai-sdk/react`) |
 | LLM Provider | 9 providers via Vercel AI SDK — OpenAI, Anthropic, Azure OpenAI, Azure AI Foundry, AWS Bedrock, Google Vertex AI, Fireworks AI, xAI Grok, OpenRouter |
 | Tool Protocol | MCP via `@ai-sdk/mcp` (optional) |
 | Auth | Better Auth v1.5 |
@@ -102,7 +102,8 @@ APP_TWITTER_SITE=@yourhandle                       # optional Twitter/X handle
 
 # ── Location Sharing ─────────────────────────────────────────────
 NEXT_PUBLIC_LOCATION_MODE=v1                       # v1 (browser geolocation) | v2 (Google Maps search)
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...            # required for v2 — restrict to HTTP referrer + Places/Routes API
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...            # required for v2 — restrict to HTTP referrer + Places API
+GOOGLE_MAPS_API_KEY=AIza...                        # required for v2 — server-side Distance Matrix proxy (restrict to IP/server)
 NEXT_PUBLIC_GOOGLE_MAPS_REGION=                    # optional ISO 3166-1 alpha-2 (e.g. ID, JP, KR)
 
 # ── Database ─────────────────────────────────────────────────
@@ -183,13 +184,17 @@ APP_LOCALE=en                                      # en | id | kr | jp — serve
 TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 
 # ── MCP Tools (optional) ─────────────────────────────────────
-# MCP_URL      = any MCP server (Rails, Laravel, Spring, etc.) — tool call only
-# MCP_APPS_URL = TypeScript MCP server — tool call + embedded UI (MCP Apps)
-# Leave empty to run chat without tools.
+# Choose ONE option — setting both MCP_URL and MCP_APPS_URL is rejected at runtime.
+# Leave both empty to run chat without tools.
+#
+# Option A — any MCP server (Rails, Laravel, Spring, etc.) — tool call only
 # MCP_URL=https://your-backend.com/mcp
 # MCP_TOKEN=your-bearer-token
+#
+# Option B — TypeScript MCP server — tool call + embedded UI (MCP Apps)
 # MCP_APPS_URL=https://your-ts-mcp-server.com/mcp
 # MCP_APPS_TOKEN=your-bearer-token
+#
 # MCP_JWT_SECRET=     # openssl rand -hex 32 — shared secret for JWT user identity
 
 # ── Email / Resend (optional) ────────────────────────────────
@@ -215,9 +220,11 @@ TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 
 ## Quick Start
 
+### Local development
+
 ```bash
 # 1. Clone
-git clone https://github.com/your-org/chat.git
+git clone https://github.com/repaera/chat.git
 cd chat
 
 # 2. Install dependencies
@@ -236,6 +243,39 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000), register a new account, and start chatting.
+
+### VPS / VM — one-command install
+
+Spin up a fresh Ubuntu or Debian server, point your domain's DNS A record at it, then run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/repaera/chat/main/install.sh | sudo bash
+```
+
+The script will:
+- Install Docker and Docker Compose if not already present
+- Prompt for your domain, LLM provider, R2 credentials, and other settings
+- Clone the repo, write `.env`, build the Docker image
+- Start PostgreSQL, run migrations, start the app and Nginx
+- Obtain a Let's Encrypt SSL certificate automatically
+- Set up a cron job for certificate renewal
+
+**Non-interactive (CI / scripted deploys):**
+
+```bash
+export DOMAIN=chat.yourdomain.com
+export SSL_EMAIL=admin@yourdomain.com
+export LLM_PROVIDER=openrouter
+export LLM_API_KEY=sk-or-...
+export R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=...
+export R2_BUCKET_NAME=my-chat R2_PUBLIC_URL=https://assets.yourdomain.com
+export TRIGGER_SECRET_KEY=tr_live_...
+
+curl -fsSL https://raw.githubusercontent.com/repaera/chat/main/install.sh \
+  | sudo bash -s -- --non-interactive
+```
+
+Run `bash install.sh --help` for the full list of supported environment variables.
 
 ---
 
@@ -263,8 +303,8 @@ npm run db:push         # Sync schema to DB without migration file (dev only)
 npm run db:migrate      # Create and apply a migration file
 npm run db:studio       # Open Prisma Studio in the browser
 
-npm run trigger:dev       # Run Trigger.dev dev worker
-npm run trigger:deploy    # Deploy Trigger.dev tasks to production
+npx trigger.dev@latest dev      # Run Trigger.dev dev worker
+npx trigger.dev@latest deploy   # Deploy Trigger.dev tasks to production
 ```
 
 ### Project Structure
@@ -444,7 +484,7 @@ TRIGGER_SECRET_KEY=tr_dev_...
 
 ```bash
 # Run in a separate terminal alongside npm run dev
-npm run trigger:dev
+npx trigger.dev@latest dev
 ```
 
 This opens a tunnel so the worker can receive jobs locally. To trigger a task manually: Dashboard → Tasks → select task → Test.
@@ -452,7 +492,7 @@ This opens a tunnel so the worker can receive jobs locally. To trigger a task ma
 #### Deploy to production
 
 ```bash
-npm run trigger:deploy
+npx trigger.dev@latest deploy
 ```
 
 Trigger.dev manages worker infrastructure — no server-side worker process is needed. Run this from your local machine or CI pipeline whenever task code changes.
@@ -574,7 +614,7 @@ TypeScript enforces the `Locale` type contract — if a key is missing in a new 
 
 ### Connecting an MCP Server
 
-Two optional endpoints — set one or both, leave empty to run without tools:
+Choose **one** option — setting both is a misconfiguration and will be rejected at runtime with a `500` error. Leave both unset to run chat without tools.
 
 ```bash
 # Option A — agnostic MCP server (Rails, Laravel, Spring, etc.) — tool call only
@@ -590,7 +630,7 @@ MCP_APPS_TOKEN=your-bearer-token    # optional Bearer token
 MCP_JWT_SECRET=                     # openssl rand -hex 32
 ```
 
-If neither is set, chat works normally without tools. Tools from both endpoints are merged automatically if both are set.
+If neither is set, chat works normally without tools.
 
 > **Transport:** The MCP server must support **Streamable HTTP** (MCP spec 2025-03-26). `route.ts` uses `type: "http"`.
 
@@ -810,7 +850,7 @@ docker compose exec app npx prisma migrate deploy   # only if new migrations
 
 ### Dockerfile
 
-Add this file to the project root, and add `output: "standalone"` to `next.config.ts`.
+`Dockerfile` and `.dockerignore` are included in the repo. `next.config.ts` already sets `output: "standalone"`. No additional setup is needed for Docker builds.
 
 ```dockerfile
 FROM node:20-alpine AS base
@@ -854,6 +894,113 @@ CMD ["node", "server.js"]
 const nextConfig: NextConfig = {
   output: "standalone",
 };
+```
+
+---
+
+
+### Render.com
+
+`render.yaml` is included in the repo — connect it once and Render manages the rest.
+
+#### First deploy
+
+1. Push the repo to GitHub
+2. Render dashboard → **New → Blueprint** → connect the repo
+3. Render detects `render.yaml` and creates the web service + PostgreSQL database
+4. Set all env vars marked `sync: false` in the dashboard (LLM key, R2 credentials, Trigger.dev key, Resend, Sentry)
+5. Click **Apply** — Render builds the Docker image, runs `npx prisma migrate deploy`, and starts the service
+
+#### Custom domain
+
+Render dashboard → your service → **Settings → Custom Domains** → add domain → update DNS.
+
+#### Updating
+
+Push to `main`. Render auto-deploys on every push. Migrations run automatically via `preDeployCommand`.
+
+#### Using a pre-built Docker Hub image
+
+> **Note:** An official public image has not been published yet. This section is here for when it becomes available — the guide will work as-is once the image exists.
+
+In `render.yaml`, replace `runtime: docker` + `dockerfilePath` with:
+
+```yaml
+services:
+  - type: web
+    name: chat
+    image:
+      url: docker.io/repaera/chat:latest
+```
+
+---
+
+### Fly.io
+
+`fly.toml` is included in the repo.
+
+#### First deploy
+
+```bash
+# Install flyctl
+curl -L https://fly.io/install.sh | sh
+
+# Authenticate
+fly auth login
+
+# Create the app (updates app name in fly.toml)
+fly launch --no-deploy
+
+# Create and attach a managed Postgres cluster
+fly postgres create --name chat-db
+fly postgres attach chat-db   # sets DATABASE_URL secret automatically
+
+# Set remaining secrets
+fly secrets set \
+  BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
+  NEXT_PUBLIC_APP_URL=https://$(fly info --name | grep Hostname | awk '{print $2}') \
+  LLM_PROVIDER=openrouter \
+  OPENROUTER_API_KEY=sk-or-... \
+  R2_ACCOUNT_ID=... \
+  R2_ACCESS_KEY_ID=... \
+  R2_SECRET_ACCESS_KEY=... \
+  R2_BUCKET_NAME=... \
+  R2_PUBLIC_URL=https://assets.yourdomain.com \
+  TRIGGER_SECRET_KEY=tr_live_... \
+  RESEND_API_KEY=re_... \
+  RESEND_FROM=noreply@yourdomain.com \
+  NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/... \
+  SENTRY_ORG=your-org \
+  SENTRY_PROJECT=your-project
+
+# Deploy — runs `npx prisma migrate deploy` before going live (see fly.toml [deploy])
+fly deploy
+```
+
+#### Custom domain
+
+```bash
+fly certs add chat.yourdomain.com
+# Follow DNS instructions printed by the command
+```
+
+#### Updating
+
+```bash
+fly deploy
+```
+
+Migrations run automatically via `[deploy] release_command` in `fly.toml`.
+
+#### Using a pre-built Docker Hub image
+
+> **Note:** An official public image has not been published yet. This section is here for when it becomes available — the guide will work as-is once the image exists.
+
+In `fly.toml`, replace `[build] dockerfile` with:
+
+```toml
+[build]
+  image = "repaera/chat:latest"
 ```
 
 ---

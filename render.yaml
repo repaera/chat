@@ -1,0 +1,91 @@
+## Render.com — Infrastructure as Code
+## Docs: https://render.com/docs/infrastructure-as-code
+##
+## Usage:
+##   1. Push this file to your GitHub repo
+##   2. In Render dashboard: New → Blueprint → connect repo
+##   3. Set all env vars marked sync: false in the dashboard
+##   4. Deploy
+
+services:
+  - type: web
+    name: chat
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter        # starter | standard | pro
+    region: singapore    # frankfurt | ohio | oregon | singapore | virginia
+    branch: main
+
+    # Run migrations before each deploy goes live
+    preDeployCommand: "npx prisma migrate deploy"
+
+    healthCheckPath: /
+
+    envVars:
+      # ── Set automatically ──────────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PROVIDER
+        value: postgresql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chat-db
+          property: connectionString
+
+      # ── Set manually in Render dashboard (sync: false = prompt but no value) ──
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false        # e.g. https://chat.onrender.com or your custom domain
+      - key: NEXT_PUBLIC_APP_NAME
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+
+      # AI — set the key for your chosen provider
+      - key: LLM_PROVIDER
+        sync: false        # openrouter | openai | anthropic | azure-openai | etc.
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+      # R2 image storage
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+
+      # Background jobs
+      - key: TRIGGER_SECRET_KEY
+        sync: false
+
+      # Email
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+
+      # Error tracking
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+      - key: SENTRY_ORG
+        sync: false
+      - key: SENTRY_PROJECT
+        sync: false
+
+      # Optional
+      - key: APP_PERSONA_CONTEXT
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+databases:
+  - name: chat-db
+    plan: starter          # starter | standard | pro
+    databaseName: chat_db
+    user: chat

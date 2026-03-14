@@ -8,8 +8,8 @@ This file is auto-loaded by Claude Code on every session. Read it fully before t
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router), React 19, Tailwind CSS v4 |
-| AI | Vercel AI SDK v5, 9 LLM providers (see `src/lib/llm.ts`) |
+| Framework | Next.js 16 (App Router), React 19, Tailwind CSS v4 |
+| AI | Vercel AI SDK v6, 9 LLM providers (see `src/lib/llm.ts`) |
 | Database | Prisma v7, SQLite (dev) / PostgreSQL / MariaDB (prod) |
 | Auth | Better Auth v1.5 — email/password + Google OAuth + email verification |
 | Storage | Cloudflare R2 via AWS SDK (`@aws-sdk/client-s3`) |
@@ -40,6 +40,7 @@ src/
 │   ├── chat/
 │   │   ├── ChatClient.tsx             # Main chat UI — useChat hook, scroll, pagination
 │   │   ├── MessageList.tsx            # Renders all message parts (text, file, tool, location, commute)
+│   │   ├── TypedText.tsx              # Typed.js wrapper — animates text on new assistant messages + header title
 │   │   ├── ChatInput.tsx              # Input bar — text, image, location buttons
 │   │   ├── ImageUploadButton.tsx      # Upload to R2, heartbeat loop, attach on submit
 │   │   ├── LocationDialog.tsx         # Place search / commute UI (Google Maps v2)
@@ -75,6 +76,8 @@ src/
 │   └── jp.ts                          # Japanese
 │
 ├── hooks/
+│   ├── use-image-heartbeat.ts         # Heartbeat ping every 30s while image is pending
+│   ├── use-mobile.ts                  # Touch-screen device detection
 │   └── use-place-autocomplete.ts      # Google Places autocomplete hook (v2 only)
 │
 └── trigger/
@@ -157,7 +160,7 @@ Orphan cleanup: hourly Trigger.dev job deletes images where `messageId=null AND 
 
 - `locationMode: "v1"` — browser geolocation only, no API key
 - `locationMode: "v2"` — Google Places autocomplete + commute via Distance Matrix API
-  Requires: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY`
+  Requires: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (client, Places), `GOOGLE_MAPS_API_KEY` (server, Distance Matrix)
   Optional: `NEXT_PUBLIC_GOOGLE_MAPS_REGION` (ISO 3166-1 alpha-2, biases results)
 
 Custom parts (`LocationPart`, `CommutePart`) are stored as JSON in `Message.customParts`, converted to text before being sent to the LLM.
@@ -168,7 +171,7 @@ Custom parts (`LocationPart`, `CommutePart`) are stored as JSON in `Message.cust
 
 - Locale resolution chain: `user.locale` (DB) → `APP_LOCALE` env → geo-detection → `"en"`
 - All UI and system prompt strings live in `src/locales/<lang>.ts`
-- `NEXT_PUBLIC_APP_CHAT_HINT` and `NEXT_PUBLIC_APP_CHAT_SUGGESTIONS` are **locale-blind** overrides — if set, they apply to ALL users regardless of locale. Leave unset and use locale files instead.
+- Chat hint and suggestion strings are locale-only — customise them in `src/locales/*.ts` (`ui.emptyHint`, `ui.suggestions`). There are no env var overrides.
 - `APP_PERSONA_CONTEXT` is server-only and English-only (system prompt only, not user-facing)
 
 ---
@@ -195,7 +198,7 @@ Azure providers require server-side image prefetch (images fetched as base64 bef
 
 ## MCP Integration
 
-Two optional endpoints — both, one, or none:
+Choose **one** endpoint — setting both `MCP_URL` and `MCP_APPS_URL` is rejected at runtime with a `500` error.
 
 ```env
 MCP_URL=         # Generic MCP server (Rails, Laravel, Spring, etc.) — tools only
@@ -205,7 +208,7 @@ MCP_APPS_TOKEN=  # Bearer token for MCP_APPS_URL
 MCP_JWT_SECRET=  # If set, injects a 30s JWT as X-User-Token header (user identity)
 ```
 
-Tools from both clients are merged. Chat continues normally if neither is set.
+Chat continues normally if neither is set.
 
 ---
 

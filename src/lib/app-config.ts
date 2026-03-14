@@ -39,20 +39,6 @@ export const appConfig = {
   // Leave empty for a fully generic assistant.
   personaContext: process.env.APP_PERSONA_CONTEXT ?? "",
 
-  // ── Chat UI overrides ──────────────────────────────────────────
-  // Override the empty-state hint shown when there are no messages.
-  // Falls back to the active locale string if not set.
-  chatHint: process.env.NEXT_PUBLIC_APP_CHAT_HINT ?? null,
-
-  // Override the suggestion buttons as a JSON array (3 items recommended).
-  // e.g. '["Track my order","Cancel order","Where's my driver?"]'
-  // Falls back to the active locale strings if not set or if parsing fails.
-  chatSuggestions: (() => {
-    const raw = process.env.NEXT_PUBLIC_APP_CHAT_SUGGESTIONS;
-    if (!raw) return null;
-    try { return JSON.parse(raw) as string[]; } catch { return null; }
-  })(),
-
   // ── Help center ────────────────────────────────────────────────
   // If set, a help button appears in the chat header linking to this URL.
   helpCenterUrl: process.env.NEXT_PUBLIC_APP_HELP_URL ?? null,

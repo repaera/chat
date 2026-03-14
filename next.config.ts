@@ -17,8 +17,9 @@ const allowedDevOrigins = process.env.ALLOWED_DEV_ORIGINS
 // `instrumentation.ts` is recognized automatically without any flags.
 // Docs: https://nextjs.org/blog/next-15#instrumentationjs-stable
 const nextConfig: NextConfig = {
+  output: "standalone",
   ...(allowedDevOrigins.length > 0 && { allowedDevOrigins }),
-  
+
   // Custom Webpack block removed to avoid conflicts with Turbopack
 
   experimental: {

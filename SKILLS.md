@@ -335,6 +335,31 @@ if (parts.length === 0) parts.push({ type: "text", text: "" });
 
 ---
 
+## Pattern: Typing animation with TypedText
+
+Use `TypedText` from `src/components/chat/TypedText.tsx` for any animated text reveal:
+
+```tsx
+import { TypedText } from "@/components/chat/TypedText";
+
+// Animate once (e.g. new conversation title in sidebar)
+<TypedText text={title} animate={justCreated} typeSpeed={35} />
+
+// Always animate (e.g. new assistant message)
+<TypedText text={content} typeSpeed={20} onComplete={() => setAnimationDoneId(id)} />
+
+// Static (no animation)
+<TypedText text={content} animate={false} />
+```
+
+Key behaviours:
+- Uses `contentType: "null"` (textContent, not innerHTML) — safe for LLM output
+- Cursor auto-removed via `self.cursor?.remove()` in `onComplete`
+- `visibilitychange` listener skips stalled animation when user returns to a background tab
+- Re-animates when `text` prop changes while `animate` is true
+
+---
+
 ## Solved: Reasoning tokens causing LLM errors in multi-turn conversations
 
 o-series models (gpt-o1, o3, etc.) include reasoning tokens in their response. If sent back unstripped, the SDK errors because reasoning parts must be followed by a text part.

@@ -368,8 +368,8 @@ export default function ChatClient({
 				}}
 				cc={{
 					loadingMore: cc.loadingMore,
-					emptyHint: appConfig.chatHint ?? cc.emptyHint,
-					suggestions: appConfig.chatSuggestions ?? cc.suggestions,
+					emptyHint: cc.emptyHint,
+					suggestions: cc.suggestions,
 					toolCalling: cc.toolCalling,
 					toolDone: cc.toolDone,
 				}}
