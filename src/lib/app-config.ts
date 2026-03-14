@@ -53,6 +53,10 @@ export const appConfig = {
     try { return JSON.parse(raw) as string[]; } catch { return null; }
   })(),
 
+  // ── Help center ────────────────────────────────────────────────
+  // If set, a help button appears in the chat header linking to this URL.
+  helpCenterUrl: process.env.NEXT_PUBLIC_APP_HELP_URL ?? null,
+
   // ── Location sharing ───────────────────────────────────────────
   // "v1" = browser geolocation only (no API key needed)
   // "v2" = Google Places search + commute (requires NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)

@@ -42,7 +42,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import ChatClient from "@/components/chat/ChatClient";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { Bot, X, MoreHorizontal, Plus } from "lucide-react";
+import { Bot, X, MoreHorizontal, Plus, LifeBuoy } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -272,8 +272,8 @@ export default function ChatLayout({
         <SidebarInset className="flex flex-col min-h-0 overflow-hidden">
           {/* Topbar — trigger + active title */}
           <header className="flex h-12 shrink-0 items-center gap-2 px-3 z-10">
-            <SidebarTrigger />
-            <p className="truncate text-sm font-medium text-muted-foreground">
+            <SidebarTrigger className="size-7 md:size-9" />
+            <p className="truncate text-sm font-medium text-muted-foreground flex-1">
               {currentId
                 ? (() => {
                     const activeConv = conversations.find((c) => c.id === currentId);
@@ -282,6 +282,14 @@ export default function ChatLayout({
                   })()
                 : appConfig.name}
             </p>
+            {appConfig.helpCenterUrl && (
+              <Button variant="ghost" asChild className="shrink-0 h-8 w-8 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground">
+                <a href={appConfig.helpCenterUrl} target="_blank" rel="noopener noreferrer" aria-label="Help center">
+                  <LifeBuoy className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="hidden md:inline text-sm">Help</span>
+                </a>
+              </Button>
+            )}
           </header>
 
           {/* key={currentId} — force remount ChatClient when switching/deleting a conversation */}
