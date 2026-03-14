@@ -27,8 +27,10 @@ export const cleanupOldConversations = task({
     const convIds = oldConversations.map((c) => c.id);
     logger.log(`Found ${convIds.length} old conversations — deleting...`);
 
-    // Delete R2 objects for all images in these conversations
-    if (isStorageConfigured()) {
+    // Delete R2 objects for all images in these conversations.
+    // Skip if PRESERVE_IMAGES=true — MCP servers may store these URLs externally.
+    const preserveImages = process.env.PRESERVE_IMAGES === "true";
+    if (isStorageConfigured() && !preserveImages) {
       const messages = await db.message.findMany({
         where: { conversationId: { in: convIds } },
         select: { id: true },

@@ -250,4 +250,5 @@ npm run db:studio    # Prisma Studio GUI
 - **Leaflet** must be loaded with `dynamic(() => import(...), { ssr: false })` — has a race condition with the container div; `LeafletMapInner` handles this with a `useEffect` guard
 - **`locales/`** file structure: `system.*` = server-only prompt strings, `ui.*` = client-side UI strings. Both live in the same file per locale.
 - **`APP_PERSONA_CONTEXT`** injects into system prompt as `"You specialize in: {value}."` — English only, fine since the LLM still responds in user's locale via `t.system.tone`
+- **`PRESERVE_IMAGES=true`** skips R2 object deletion in both the manual DELETE route and the daily cleanup job — DB cascade still removes Image rows, but R2 objects remain accessible. Use this when an MCP server stores R2 image URLs in its own DB. Storage grows indefinitely; manage via R2 bucket lifecycle rules.
 

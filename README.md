@@ -457,6 +457,8 @@ Images are uploaded server-side through `POST /api/upload`. When the LLM needs t
 - If never submitted, it is auto-deleted from R2 and DB after **1 hour**
 - If expired before submit, server returns `410 Gone` and the UI prompts re-upload
 
+**MCP servers storing image URLs:** If an external MCP server saves R2 image URLs from this app into its own database, those links will break when the conversation is deleted (manually or by the daily cleanup job). Set `PRESERVE_IMAGES=true` to skip R2 object deletion — DB records are still removed but the R2 objects remain accessible. Note: storage grows indefinitely with this flag; use an R2 bucket lifecycle rule to expire objects if needed.
+
 ### Background Jobs (Trigger.dev)
 
 Jobs live in `src/trigger/` and run on Trigger.dev's infrastructure. All tasks use `concurrencyLimit: 1` to stay within the free tier (5 concurrent runs).
@@ -464,7 +466,7 @@ Jobs live in `src/trigger/` and run on Trigger.dev's infrastructure. All tasks u
 | Task | Schedule | Action |
 |---|---|---|
 | `cleanup-orphan-images` | Every hour | Delete `Image` rows with `messageId IS NULL` and `lastSeenAt` > 1h; remove R2 objects |
-| `cleanup-old-conversations` | Daily 00:00 UTC | Delete conversations `updatedAt` > 30d, including messages and R2 images |
+| `cleanup-old-conversations` | Daily 00:00 UTC | Delete conversations `updatedAt` > 30d, including messages and R2 images (skips R2 deletion if `PRESERVE_IMAGES=true`) |
 
 #### First-time setup
 

@@ -93,6 +93,7 @@ Any change to the upload flow must preserve this invariant:
 - Heartbeat → refreshes `lastSeenAt` every 30s while user is composing
 - Submit → `route.ts` validates orphan exists → `onFinish` sets `messageId`
 - Never set `messageId` before `onFinish` — the user might cancel
+- Attached images are deleted from R2 when the conversation is deleted (manual or auto-cleanup), **unless `PRESERVE_IMAGES=true`** — set this when an external MCP server stores R2 image URLs in its own DB
 
 ---
 

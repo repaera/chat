@@ -38,7 +38,9 @@ export async function DELETE(
   // Before deleting the DB record, delete R2 objects for all Images
   // whose messageId belongs to this conversation.
   // Must be done before the cascade delete removes Message rows.
-  if (isStorageConfigured()) {
+  // Skip if PRESERVE_IMAGES=true — MCP servers may store these URLs externally.
+  const preserveImages = process.env.PRESERVE_IMAGES === "true";
+  if (isStorageConfigured() && !preserveImages) {
     // Fetch all messageIds in this conversation
     const messages = await db.message.findMany({
       where: { conversationId: idParsed.data },

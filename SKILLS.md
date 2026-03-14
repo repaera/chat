@@ -354,3 +354,21 @@ const modelMessages = pruneMessages({
 
 Do not remove this call.
 
+---
+
+## Solved: MCP server storing R2 image URLs that break on conversation deletion
+
+When an MCP server saves R2 image URLs from this app into its own database, those URLs break when the conversation is deleted (manual DELETE or daily `cleanup-old-conversations` job), because both paths call `deleteManyFromR2` before the Prisma cascade.
+
+Solution already in place — set `PRESERVE_IMAGES=true` in the environment:
+
+```ts
+// conversations/[id]/route.ts and cleanup-old-conversations.ts
+const preserveImages = process.env.PRESERVE_IMAGES === "true";
+if (isStorageConfigured() && !preserveImages) {
+  await deleteManyFromR2(images.map((img) => img.key));
+}
+```
+
+Trade-off: DB Image rows are still cascade-deleted, but R2 objects remain. Storage grows permanently — manage via R2 bucket lifecycle rules if needed.
+

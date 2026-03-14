@@ -110,7 +110,7 @@ for arg in "$@"; do
 			echo "    APP_SHORT_NAME            default: same as APP_NAME"
 			echo "    APP_DESCRIPTION           app description (meta/SEO)"
 			echo "    APP_PERSONA_CONTEXT       AI persona (e.g. 'food delivery service')"
-			echo "    APP_LOCALE                default locale: en | id | kr | jp (default: en)"
+			echo "    APP_LOCALE                default locale: en | id | kr | jp | es | zh | de | nl | fr | it (default: en)"
 			echo "    APP_THEME_COLOR           PWA toolbar color (default: #ffffff)"
 			echo "    APP_BG_COLOR              PWA splash bg color (default: #ffffff)"
 			echo "    APP_FAVICON_URL           favicon URL override"
@@ -125,6 +125,9 @@ for arg in "$@"; do
 			echo "    REDIS_URL                 Redis URL for shared rate limiting (optional)"
 			echo "                              e.g. redis://host:6379 or rediss://user:token@host:6380"
 			echo "                              Leave unset to use in-memory (single-instance only)"
+			echo "    PRESERVE_IMAGES        true | unset (default: unset)"
+			echo "                              Skip R2 object deletion on conversation delete/cleanup."
+			echo "                              Use when an MCP server stores R2 image URLs externally."
 			echo "    GTM_ID                    Google Tag Manager ID (e.g. GTM-XXXXXX)"
 			echo "    LOCATION_MODE             v1 (default, browser geo) | v2 (Google Maps)"
 			echo "    GOOGLE_MAPS_PUB_KEY       NEXT_PUBLIC key for Places autocomplete (v2)"
@@ -403,7 +406,7 @@ collect_config_interactive() {
 
 	echo ""
 	info "Locale — default language when user has no preference"
-	ask_opt APP_LOCALE "Default locale (en / id / kr / jp)" "en"
+	ask_opt APP_LOCALE "Default locale (en / id / kr / jp / es / zh / de / nl / fr / it)" "en"
 
 	echo ""
 	echo "  Redis — optional: shared rate limiting for multi-replica deployments"
@@ -507,6 +510,7 @@ collect_config_silent() {
 	# Locale
 	APP_LOCALE="${APP_LOCALE:-}"
 	REDIS_URL="${REDIS_URL:-}"
+	PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
 	# Analytics
 	GTM_ID="${GTM_ID:-}"
 
@@ -665,6 +669,7 @@ R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
 R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
 R2_BUCKET_NAME=${R2_BUCKET_NAME}
 R2_PUBLIC_URL=${R2_PUBLIC_URL}
+${PRESERVE_IMAGES:+PRESERVE_IMAGES=${PRESERVE_IMAGES}}
 
 # ── Background Jobs ───────────────────────────────────────────────────────────
 TRIGGER_SECRET_KEY=${TRIGGER_SECRET_KEY}
