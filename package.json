@@ -31,7 +31,7 @@
     "@ai-sdk/xai": "^3.0.67",
     "@aws-sdk/client-s3": "^3.1009.0",
     "@aws-sdk/lib-storage": "^3.1002.0",
-    "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@openrouter/ai-sdk-provider": "^2.3.1",
     "@prisma/adapter-better-sqlite3": "^7.4.2",
     "@prisma/adapter-mariadb": "^7.4.2",
     "@prisma/adapter-pg": "^7.5.0",
