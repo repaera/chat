@@ -34,7 +34,7 @@
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@prisma/adapter-better-sqlite3": "^7.4.2",
     "@prisma/adapter-mariadb": "^7.4.2",
-    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.4.2",
     "@quail-ai/azure-ai-provider": "^2.0.0",
     "@sentry/nextjs": "^10.42.0",
