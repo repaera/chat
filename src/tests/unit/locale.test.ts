@@ -28,8 +28,44 @@ describe("resolveUserLocale", () => {
     expect(locale).toBe("jp");
   });
 
+  it("returns Spanish for locale 'es'", async () => {
+    const { locale, ui } = await resolveUserLocale("es");
+    expect(locale).toBe("es");
+    expect(ui.meta.htmlLang).toBe("es");
+  });
+
+  it("returns Mandarin for locale 'zh'", async () => {
+    const { locale, ui } = await resolveUserLocale("zh");
+    expect(locale).toBe("zh");
+    expect(ui.meta.htmlLang).toBe("zh");
+  });
+
+  it("returns German for locale 'de'", async () => {
+    const { locale, ui } = await resolveUserLocale("de");
+    expect(locale).toBe("de");
+    expect(ui.meta.htmlLang).toBe("de");
+  });
+
+  it("returns Dutch for locale 'nl'", async () => {
+    const { locale, ui } = await resolveUserLocale("nl");
+    expect(locale).toBe("nl");
+    expect(ui.meta.htmlLang).toBe("nl");
+  });
+
+  it("returns French for locale 'fr'", async () => {
+    const { locale, ui } = await resolveUserLocale("fr");
+    expect(locale).toBe("fr");
+    expect(ui.meta.htmlLang).toBe("fr");
+  });
+
+  it("returns Italian for locale 'it'", async () => {
+    const { locale, ui } = await resolveUserLocale("it");
+    expect(locale).toBe("it");
+    expect(ui.meta.htmlLang).toBe("it");
+  });
+
   it("falls back to 'en' for an unknown locale key", async () => {
-    const { locale } = await resolveUserLocale("fr");
+    const { locale } = await resolveUserLocale("xx");
     expect(locale).toBe("en");
   });
 
