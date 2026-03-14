@@ -46,6 +46,7 @@
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ioredis": "^5.10.0",
     "leaflet": "^1.9.4",
     "linkify-react": "^4.3.2",
     "linkifyjs": "^4.3.2",

@@ -122,7 +122,9 @@ for arg in "$@"; do
 			echo "    APP_TWITTER_CARD          summary | summary_large_image (default)"
 			echo "    APP_TWITTER_SITE          Twitter/X handle e.g. @yourhandle"
 			echo "    APP_HELP_URL              help center URL (adds help button in header)"
-			echo "    WEEKLY_MESSAGE_LIMIT      weekly message cap per user (0 = disabled)"
+			echo "    REDIS_URL                 Redis URL for shared rate limiting (optional)"
+			echo "                              e.g. redis://host:6379 or rediss://user:token@host:6380"
+			echo "                              Leave unset to use in-memory (single-instance only)"
 			echo "    GTM_ID                    Google Tag Manager ID (e.g. GTM-XXXXXX)"
 			echo "    LOCATION_MODE             v1 (default, browser geo) | v2 (Google Maps)"
 			echo "    GOOGLE_MAPS_PUB_KEY       NEXT_PUBLIC key for Places autocomplete (v2)"
@@ -404,8 +406,9 @@ collect_config_interactive() {
 	ask_opt APP_LOCALE "Default locale (en / id / kr / jp)" "en"
 
 	echo ""
-	info "Rate limiting"
-	ask_opt WEEKLY_MESSAGE_LIMIT "Weekly message limit per user (0 = disabled)" "0"
+	echo "  Redis — optional: shared rate limiting for multi-replica deployments"
+	echo "  Leave empty to use in-memory rate limiting (fine for single instance)"
+	ask_sec_opt REDIS_URL "Redis URL (e.g. redis://host:6379 or rediss://user:token@host:6380)"
 
 	echo ""
 	info "Analytics — press Enter to skip"
@@ -501,9 +504,9 @@ collect_config_silent() {
 	APP_TWITTER_SITE="${APP_TWITTER_SITE:-}"
 	# Chat UI
 	APP_HELP_URL="${APP_HELP_URL:-}"
-	# Locale & limits
+	# Locale
 	APP_LOCALE="${APP_LOCALE:-}"
-	WEEKLY_MESSAGE_LIMIT="${WEEKLY_MESSAGE_LIMIT:-}"
+	REDIS_URL="${REDIS_URL:-}"
 	# Analytics
 	GTM_ID="${GTM_ID:-}"
 
@@ -701,9 +704,9 @@ ${APP_TWITTER_SITE:+APP_TWITTER_SITE=${APP_TWITTER_SITE}}
 # ── Chat UI ───────────────────────────────────────────────────────────────────
 ${APP_HELP_URL:+NEXT_PUBLIC_APP_HELP_URL=${APP_HELP_URL}}
 
-# ── Locale & rate limiting ────────────────────────────────────────────────────
+# ── Locale ────────────────────────────────────────────────────────────────────
 ${APP_LOCALE:+APP_LOCALE=${APP_LOCALE}}
-${WEEKLY_MESSAGE_LIMIT:+WEEKLY_MESSAGE_LIMIT=${WEEKLY_MESSAGE_LIMIT}}
+${REDIS_URL:+REDIS_URL=${REDIS_URL}}
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 ${GTM_ID:+NEXT_PUBLIC_GTM_ID=${GTM_ID}}

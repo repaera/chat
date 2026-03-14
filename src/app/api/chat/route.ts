@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const { t } = await resolveUserLocale(userRecord?.locale);
 
   // ── 2. Rate limit per user (20 messages/minute) ───────────────────
-  const userLimit = checkRateLimit(`user:${userId}`, {
+  const userLimit = await checkRateLimit(`user:${userId}`, {
     limit: 20,
     windowMs: 60_000,
   });
