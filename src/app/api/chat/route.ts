@@ -164,11 +164,18 @@ export async function POST(req: Request) {
   }
 
   // ── 6. MCP Clients (optional) ────────────────────────────────
-  // Two optional endpoints — fill in one or both:
+  // Choose ONE endpoint — not both:
   //   MCP_URL      = Agnostic MCP server (Rails, Laravel, Spring, etc.) — tool call only
   //   MCP_APPS_URL = TypeScript ext-apps server — tool call + embedded UI (MCP Apps)
-  // Tools from both are merged automatically. Leave empty if not used.
-  // Chat continues to work without tools if both are not set.
+  // Setting both is a misconfiguration and will be rejected at runtime.
+  // Chat continues to work without tools if neither is set.
+
+  if (process.env.MCP_URL && process.env.MCP_APPS_URL) {
+    return Response.json(
+      { error: "Misconfiguration: set either MCP_URL or MCP_APPS_URL, not both." },
+      { status: 500 },
+    );
+  }
 
   const mcpClients: Awaited<ReturnType<typeof createMCPClient>>[] = [];
   let tools: ToolSet = {};
