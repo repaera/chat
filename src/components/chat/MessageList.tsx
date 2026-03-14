@@ -4,6 +4,7 @@
 import { useRef, useState, useEffect } from "react";
 import type { UIMessage } from "ai";
 import Linkify from "linkify-react";
+import { Bot } from "lucide-react";
 import { LocationBubble, CommuteBubble } from "@/components/chat/LocationBubble";
 import type { LocationPart, CommutePart } from "@/components/chat/location-types";
 
@@ -17,7 +18,7 @@ function ChatImage({ src }: { src: string }) {
 	}, [src]);
 
 	return (
-		<div className="mt-1.5 w-full aspect-square rounded-lg overflow-hidden border border-zinc-200">
+		<div className="mt-1.5 w-full aspect-square rounded-lg overflow-hidden border border-border">
 			<img
 				ref={imgRef}
 				src={src}
@@ -44,16 +45,16 @@ function SkeletonBubble({
 	return (
 		<div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
 			{!isUser && (
-				<div className="shrink-0 w-7 h-7 rounded-lg bg-zinc-200 animate-pulse mt-0.5" />
+				<div className="shrink-0 w-7 h-7 rounded-lg bg-muted animate-pulse mt-0.5" />
 			)}
 			<div
-				className={`rounded-2xl px-3.5 py-2.5 flex flex-col gap-2 ${isUser ? "bg-zinc-100" : "bg-zinc-900"}`}
+				className="rounded-2xl px-3.5 py-2.5 flex flex-col gap-2 bg-muted"
 				style={{ width, minWidth: "60px" }}
 			>
 				{Array.from({ length: lines }).map((_, i) => (
 					<div
 						key={i}
-						className={`h-3 rounded animate-pulse ${isUser ? "bg-zinc-300" : "bg-zinc-700"}`}
+						className="h-3 rounded animate-pulse bg-muted-foreground/20"
 						style={{ width: i === lines - 1 && lines > 1 ? "65%" : "100%" }}
 					/>
 				))}
@@ -116,20 +117,20 @@ export function MessageList({
 
 					{isLoadingMore && (
 						<div className="flex justify-center py-2">
-							<span className="text-xs text-zinc-500 animate-pulse">{cc.loadingMore}</span>
+							<span className="text-xs text-muted-foreground animate-pulse">{cc.loadingMore}</span>
 						</div>
 					)}
 
 					{/* Empty state */}
 					{isEmpty && (
 						<div className="flex flex-col items-center justify-center gap-6 text-center py-16">
-							<p className="text-sm text-zinc-500">{cc.emptyHint}</p>
+							<p className="text-sm text-muted-foreground">{cc.emptyHint}</p>
 							<div className="flex flex-col gap-2 w-full max-w-xs">
 								{cc.suggestions.map((s) => (
 									<button
 										key={s}
 										onClick={() => onSuggestionClick(s)}
-										className="text-sm text-left px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100 transition-all"
+										className="text-sm text-left px-4 py-2.5 rounded-xl bg-muted border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all"
 									>
 										{s}
 									</button>
@@ -151,8 +152,8 @@ export function MessageList({
 								className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
 							>
 								{m.role === "assistant" && (
-									<div className="shrink-0 w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-xs mt-0.5">
-										✓
+									<div className="shrink-0 w-7 h-7 rounded-lg bg-muted flex items-center justify-center mt-0.5">
+										<Bot className="w-4 h-4 text-muted-foreground" />
 									</div>
 								)}
 								<div
@@ -188,8 +189,8 @@ export function MessageList({
                       break-words min-w-0
                       ${
 																m.role === "user"
-																	? "max-w-xs bg-zinc-100 text-zinc-900 rounded-br-sm"
-																	: "w-full bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-bl-sm"
+																	? "max-w-xs bg-muted text-foreground rounded-br-sm"
+																	: "w-full bg-background border border-border text-foreground rounded-bl-sm"
 															}
                     `}
 									>
@@ -223,7 +224,7 @@ export function MessageList({
 															rel: "noopener noreferrer",
 															className: isUser
 																? "underline underline-offset-2 hover:opacity-80"
-																: "text-blue-400 underline underline-offset-2 hover:text-blue-300",
+																: "text-blue-600 underline underline-offset-2 hover:text-blue-700",
 														}}
 													>
 														{textPart.text}
@@ -246,7 +247,7 @@ export function MessageList({
 												return (
 													<p
 														key={`tool-${i}`}
-														className="text-xs text-zinc-500 italic flex items-center gap-1.5"
+														className="text-xs text-muted-foreground italic flex items-center gap-1.5"
 													>
 														<span className={running ? "animate-spin inline-block" : ""}>⚙</span>
 														{running
@@ -272,13 +273,13 @@ export function MessageList({
 										(p as { type: "text"; text: string }).text.length > 0,
 								))) && (
 						<div className="flex gap-3 justify-start">
-							<div className="shrink-0 w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-xs mt-0.5">
-								✓
+							<div className="shrink-0 w-7 h-7 rounded-lg bg-muted flex items-center justify-center mt-0.5">
+								<Bot className="w-4 h-4 text-muted-foreground" />
 							</div>
-							<div className="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
-								<span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce [animation-delay:0ms]" />
-								<span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce [animation-delay:150ms]" />
-								<span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce [animation-delay:300ms]" />
+							<div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+								<span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
+								<span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
+								<span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
 							</div>
 						</div>
 					)}

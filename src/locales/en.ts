@@ -110,7 +110,7 @@ export default {
     },
     settings: {
       pageTitle: "Settings",
-      backLink: "← Back",
+      backLink: "Back",
       retentionNotice: "Conversations inactive for more than {days} days will be automatically deleted along with all attached messages and images.",
       tabProfile: "Profile",
       tabSecurity: "Security",
@@ -167,7 +167,7 @@ export default {
       },
     },
     chatLayout: {
-      newButton: '+ New',
+      newButton: 'New Chat',
       emptyState: 'No conversations yet.',
       untitledConversation: 'New Conversation',
       settings: 'Settings',

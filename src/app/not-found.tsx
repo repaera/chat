@@ -38,11 +38,11 @@ export default function NotFound() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center gap-4 text-center p-4">
-      <p className="text-6xl font-bold text-neutral-700">404</p>
-      <h1 className="text-xl font-semibold text-neutral-200">{s.title}</h1>
-      <p className="text-sm text-neutral-500">{s.description}</p>
-      <Button asChild variant="outline" className="border-neutral-700 text-neutral-300 mt-2">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center p-4">
+      <p className="text-6xl font-bold text-muted-foreground">404</p>
+      <h1 className="text-xl font-semibold">{s.title}</h1>
+      <p className="text-sm text-muted-foreground">{s.description}</p>
+      <Button asChild variant="outline" className="mt-2">
         <Link href="/">{s.backToChat}</Link>
       </Button>
     </div>

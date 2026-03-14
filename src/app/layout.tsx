@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 import { GtmScript, GtmNoScript } from "@/components/providers/gtm";
@@ -9,6 +10,8 @@ import { resolveUserLocale } from "@/lib/locale";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { appConfig } from "@/lib/app-config";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 // Metadata is generated dynamically based on the server default locale.
 // Per-user locale cannot be used in generateMetadata because there is no session
@@ -115,7 +118,7 @@ export default async function RootLayout({
           />
         )}
       </head>
-      <body className="antialiased overscroll-none">
+      <body className={`${inter.variable} antialiased overscroll-none`}>
         <GtmNoScript />
         <NuqsAdapter>
           <LocaleProvider t={resolved.ui} locale={resolved.locale}>

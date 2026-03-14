@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import ChatClient from "@/components/chat/ChatClient";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { Bot, X, MoreHorizontal, Plus } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -94,19 +95,9 @@ function AppSidebar({
       <Sidebar>
         {/* Header */}
         <SidebarHeader>
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">✓</span>
-              <span className="text-sm font-semibold text-zinc-100">{appConfig.name}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-zinc-400 hover:text-zinc-100"
-              onClick={onNewChat}
-            >
-              {cl.newButton}
-            </Button>
+          <div className="flex items-center gap-2 px-0 py-3">
+            <Bot className="w-4 h-4" />
+            <span className="text-sm font-semibold text-sidebar-foreground">{appConfig.name}</span>
           </div>
         </SidebarHeader>
 
@@ -114,8 +105,19 @@ function AppSidebar({
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
+              <div className="px-2 pb-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  onClick={onNewChat}
+                >
+                  <Plus className="w-4 h-4" />
+                  {cl.newButton}
+                </Button>
+              </div>
               {conversations.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-zinc-600">
+                <p className="px-4 py-6 text-center text-xs text-sidebar-foreground/40">
                   {cl.emptyState}
                 </p>
               ) : (
@@ -125,13 +127,13 @@ function AppSidebar({
                       <SidebarMenuButton
                         isActive={activeConversationId === conv.id}
                         onClick={() => onSelectConversation(conv.id)}
-                        className="min-w-0 flex-col items-start py-2.5"
+                        className="min-w-0 flex-col items-start py-2.5 h-auto"
                       >
-                        <p className="w-full truncate font-medium">
+                        <p className="w-full truncate font-medium text-sidebar-foreground">
                           {conv.title ?? cl.untitledConversation}
                         </p>
                         {conv.preview && (
-                          <p className="w-full truncate text-zinc-600">
+                          <p className="w-full truncate text-sidebar-foreground/50">
                             {conv.preview}
                           </p>
                         )}
@@ -142,7 +144,7 @@ function AppSidebar({
                           setDeleteTarget(conv.id);
                         }}
                       >
-                        ✕
+                        <X className="w-3 h-3" />
                       </SidebarMenuAction>
                     </SidebarMenuItem>
                   ))}
@@ -157,35 +159,25 @@ function AppSidebar({
           <div className="p-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-zinc-800">
+                <button className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent shadow-sm ring-1 ring-sidebar-border">
                   <Avatar className="h-7 w-7 shrink-0">
-                    <AvatarFallback className="bg-zinc-700 text-xs text-zinc-300">
+                    <AvatarFallback className="bg-sidebar-accent text-xs text-sidebar-accent-foreground">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-zinc-200">{user.name}</p>
-                    <p className="truncate text-xs text-zinc-600">{user.email}</p>
+                    <p className="truncate text-xs font-medium text-sidebar-foreground">{user.name}</p>
+                    <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
                   </div>
-                  <span className="text-xs text-zinc-600">⋯</span>
+                  <MoreHorizontal className="w-4 h-4 text-sidebar-foreground/40" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                side="top"
-                className="w-48 border-zinc-800 bg-zinc-900"
-              >
-                <DropdownMenuItem
-                  asChild
-                  className="cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100"
-                >
+              <DropdownMenuContent align="start" side="top" className="w-48">
+                <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/settings">{cl.settings}</Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-zinc-800" />
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="cursor-pointer text-zinc-400 focus:bg-zinc-800 focus:text-zinc-100"
-                >
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                   {cl.signOut}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -196,17 +188,15 @@ function AppSidebar({
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent className="border-zinc-800 bg-zinc-900">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-zinc-100">{cl.deleteDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500">
+            <AlertDialogTitle>{cl.deleteDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
               {cl.deleteDialog.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-zinc-700 bg-transparent text-zinc-300">
-              {cl.deleteDialog.cancel}
-            </AlertDialogCancel>
+            <AlertDialogCancel>{cl.deleteDialog.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteTarget) onDeleteConversation(deleteTarget);
@@ -258,7 +248,7 @@ export default function ChatLayout({
   };
 
   return (
-    <div className="flex h-svh overflow-hidden bg-zinc-950">
+    <div className="flex h-svh overflow-hidden bg-background">
       <SidebarProvider defaultOpen={false}>
         <AppSidebar
           user={user}
@@ -283,7 +273,7 @@ export default function ChatLayout({
           {/* Topbar — trigger + active title */}
           <header className="flex h-12 shrink-0 items-center gap-2 px-3 z-10">
             <SidebarTrigger />
-            <p className="truncate text-sm font-medium text-neutral-600">
+            <p className="truncate text-sm font-medium text-muted-foreground">
               {currentId
                 ? (() => {
                     const activeConv = conversations.find((c) => c.id === currentId);

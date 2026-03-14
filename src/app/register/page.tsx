@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { Bot } from "lucide-react";
 
 // ─── Icons ────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ function PasswordStrengthBar({ password }: { password: string }) {
           <div
             key={i}
             className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              i <= score ? meta.color : "bg-neutral-700"
+              i <= score ? meta.color : "bg-muted"
             }`}
           />
         ))}
@@ -173,22 +174,22 @@ function RegisterForm() {
   const score = getPasswordScore(password);
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
 
         {/* Logo + heading */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neutral-800 text-2xl">
-            ✓
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-muted">
+            <Bot className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-semibold text-neutral-100">{r.pageTitle}</h1>
-          <p className="text-sm text-neutral-500">{r.pageSubtitle}</p>
+          <h1 className="text-xl font-semibold">{r.pageTitle}</h1>
+          <p className="text-sm text-muted-foreground">{r.pageSubtitle}</p>
         </div>
 
-        <Card className="bg-neutral-900 border-neutral-800">
+        <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-neutral-100 text-base">{r.cardTitle}</CardTitle>
-            <CardDescription className="text-neutral-500 text-xs">
+            <CardTitle className="text-base">{r.cardTitle}</CardTitle>
+            <CardDescription className="text-xs">
               {r.cardDescription}
             </CardDescription>
           </CardHeader>
@@ -203,10 +204,10 @@ function RegisterForm() {
                   variant="outline"
                   onClick={handleGoogleRegister}
                   disabled={busy}
-                  className="w-full border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-neutral-100 gap-2"
+                  className="w-full gap-2"
                 >
                   {loadingOAuth ? (
-                    <span className="w-4 h-4 border-2 border-neutral-500 border-t-neutral-200 rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-muted border-t-foreground rounded-full animate-spin" />
                   ) : (
                     <GoogleIcon />
                   )}
@@ -214,10 +215,10 @@ function RegisterForm() {
                 </Button>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-neutral-800" />
+                    <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-neutral-900 px-2 text-neutral-600">{auth.orWithEmail}</span>
+                    <span className="bg-card px-2 text-muted-foreground">{auth.orWithEmail}</span>
                   </div>
                 </div>
               </>
@@ -227,7 +228,7 @@ function RegisterForm() {
 
               {/* Name */}
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-neutral-400 text-xs">{r.nameLabel}</Label>
+                <Label htmlFor="name" className="text-xs">{r.nameLabel}</Label>
                 <Input
                   id="name"
                   type="text"
@@ -238,14 +239,14 @@ function RegisterForm() {
                   autoFocus
                   disabled={busy}
                   aria-invalid={!!fieldErrors.name}
-                  className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 ${fieldErrors.name ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  className={fieldErrors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {fieldErrors.name && <p role="alert" className="text-xs text-red-400">{fieldErrors.name}</p>}
+                {fieldErrors.name && <p role="alert" className="text-xs text-red-500">{fieldErrors.name}</p>}
               </div>
 
               {/* Email */}
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-neutral-400 text-xs">{r.emailLabel}</Label>
+                <Label htmlFor="email" className="text-xs">{r.emailLabel}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -255,14 +256,14 @@ function RegisterForm() {
                   autoComplete="email"
                   disabled={busy}
                   aria-invalid={!!fieldErrors.email}
-                  className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 ${fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  className={fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {fieldErrors.email && <p role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p role="alert" className="text-xs text-red-500">{fieldErrors.email}</p>}
               </div>
 
               {/* Password */}
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-neutral-400 text-xs">{r.passwordLabel}</Label>
+                <Label htmlFor="password" className="text-xs">{r.passwordLabel}</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -273,23 +274,23 @@ function RegisterForm() {
                     autoComplete="new-password"
                     disabled={busy}
                     aria-invalid={!!fieldErrors.password}
-                    className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    className={`pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <EyeIcon open={showPassword} />
                   </button>
                 </div>
                 {password && <PasswordStrengthBar password={password} />}
-                {fieldErrors.password && <p role="alert" className="text-xs text-red-400">{fieldErrors.password}</p>}
+                {fieldErrors.password && <p role="alert" className="text-xs text-red-500">{fieldErrors.password}</p>}
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-1.5">
-                <Label htmlFor="confirm-password" className="text-neutral-400 text-xs">{r.confirmPasswordLabel}</Label>
+                <Label htmlFor="confirm-password" className="text-xs">{r.confirmPasswordLabel}</Label>
                 <div className="relative">
                   <Input
                     id="confirm-password"
@@ -300,7 +301,7 @@ function RegisterForm() {
                     autoComplete="new-password"
                     disabled={busy}
                     aria-invalid={!!fieldErrors.confirmPassword}
-                    className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 pr-10 ${
+                    className={`pr-10 ${
                       fieldErrors.confirmPassword
                         ? "border-red-500 focus-visible:ring-red-500"
                         : confirmPassword && confirmPassword === password
@@ -311,49 +312,45 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <EyeIcon open={showConfirm} />
                   </button>
                 </div>
                 {confirmPassword && !fieldErrors.confirmPassword && (
-                  <p className={`text-xs ${confirmPassword === password ? "text-green-400" : "text-red-400"}`}>
+                  <p className={`text-xs ${confirmPassword === password ? "text-green-600" : "text-red-500"}`}>
                     {confirmPassword === password ? r.passwordMatch : r.passwordNoMatch}
                   </p>
                 )}
-                {fieldErrors.confirmPassword && <p role="alert" className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>}
+                {fieldErrors.confirmPassword && <p role="alert" className="text-xs text-red-500">{fieldErrors.confirmPassword}</p>}
               </div>
 
               {/* Submit */}
-              <Button
-                type="submit"
-                disabled={busy || (!!password && score < 2)}
-                className="w-full bg-neutral-100 hover:bg-white text-neutral-900 font-medium"
-              >
+              <Button type="submit" disabled={busy || (!!password && score < 2)} className="w-full font-medium">
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-900 rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
                     {r.submittingButton}
                   </span>
                 ) : r.submitButton}
               </Button>
 
               {/* Terms */}
-              <p className="text-xs text-neutral-600 text-center leading-relaxed">
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">
                 {r.termsPrefix}{" "}
-                <Link href="/terms" className="text-neutral-400 hover:text-neutral-200 transition-colors">{r.terms}</Link>
+                <Link href="/terms" className="text-foreground/70 hover:text-foreground transition-colors">{r.terms}</Link>
                 {" "}{r.termsAnd}{" "}
-                <Link href="/privacy" className="text-neutral-400 hover:text-neutral-200 transition-colors">{r.privacy}</Link>
+                <Link href="/privacy" className="text-foreground/70 hover:text-foreground transition-colors">{r.privacy}</Link>
               </p>
             </form>
           </CardContent>
 
           <CardFooter className="justify-center pt-0">
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               {auth.alreadyHaveAccount}{" "}
               <Link
                 href={`/login${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
-                className="text-neutral-300 hover:text-neutral-100 transition-colors font-medium"
+                className="text-foreground hover:underline transition-colors font-medium"
               >
                 {auth.signIn}
               </Link>

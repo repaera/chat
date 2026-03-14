@@ -24,6 +24,7 @@ export default async function SettingsPage() {
         locale: (session.user as { locale?: string | null }).locale ?? null,
       }}
       retentionDays={RETENTION_DAYS}
+      emailEnabled={!!process.env.RESEND_API_KEY}
     />
   );
 }

@@ -110,7 +110,7 @@ export default {
     },
     settings: {
       pageTitle: "설정",
-      backLink: "← 뒤로",
+      backLink: "뒤로",
       retentionNotice: "{days}일 이상 비활성 대화는 첨부된 메시지와 이미지와 함께 자동으로 삭제됩니다.",
       tabProfile: "프로필",
       tabSecurity: "보안",
@@ -166,7 +166,7 @@ export default {
       },
     },
     chatLayout: {
-      newButton: '+ 새로 만들기',
+      newButton: '새 채팅',
       emptyState: '대화가 없습니다.',
       untitledConversation: '새 대화',
       settings: '설정',

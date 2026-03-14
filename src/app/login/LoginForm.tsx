@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { Bot } from "lucide-react";
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -109,32 +110,32 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
   const busy = loading || loadingOAuth;
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
 
         {/* Logo + heading */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neutral-800 text-2xl">
-            ✓
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-muted">
+            <Bot className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-semibold text-neutral-100">{l.pageTitle}</h1>
-          <p className="text-sm text-neutral-500">{l.pageSubtitle}</p>
+          <h1 className="text-xl font-semibold">{l.pageTitle}</h1>
+          <p className="text-sm text-muted-foreground">{l.pageSubtitle}</p>
         </div>
 
         {/* Middleware error banner */}
         {errorParam && ERROR_MESSAGES[errorParam] && (
           <div
             role="alert"
-            className="text-xs text-amber-400 bg-amber-950/40 border border-amber-900/50 rounded-xl px-4 py-3 text-center"
+            className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center"
           >
             {ERROR_MESSAGES[errorParam]}
           </div>
         )}
 
-        <Card className="bg-neutral-900 border-neutral-800">
+        <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-neutral-100 text-base">{l.cardTitle}</CardTitle>
-            <CardDescription className="text-neutral-500 text-xs">
+            <CardTitle className="text-base">{l.cardTitle}</CardTitle>
+            <CardDescription className="text-xs">
               {l.cardDescription}
             </CardDescription>
           </CardHeader>
@@ -149,10 +150,10 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
                   variant="outline"
                   onClick={handleGoogleLogin}
                   disabled={busy}
-                  className="w-full border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-neutral-100 gap-2"
+                  className="w-full gap-2"
                 >
                   {loadingOAuth ? (
-                    <span className="w-4 h-4 border-2 border-neutral-500 border-t-neutral-200 rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-muted border-t-foreground rounded-full animate-spin" />
                   ) : (
                     <GoogleIcon />
                   )}
@@ -160,10 +161,10 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
                 </Button>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-neutral-800" />
+                    <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-neutral-900 px-2 text-neutral-600">{auth.orWithEmail}</span>
+                    <span className="bg-card px-2 text-muted-foreground">{auth.orWithEmail}</span>
                   </div>
                 </div>
               </>
@@ -173,7 +174,7 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
 
               {/* Email */}
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-neutral-400 text-xs">{l.emailLabel}</Label>
+                <Label htmlFor="email" className="text-xs">{l.emailLabel}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -184,17 +185,17 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
                   autoFocus
                   disabled={busy}
                   aria-invalid={!!fieldErrors.email}
-                  className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 ${fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  className={fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {fieldErrors.email && <p role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p role="alert" className="text-xs text-red-500">{fieldErrors.email}</p>}
               </div>
 
               {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-neutral-400 text-xs">{l.passwordLabel}</Label>
+                  <Label htmlFor="password" className="text-xs">{l.passwordLabel}</Label>
                   {emailEnabled && (
-                    <Link href="/forgot-password" className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors" tabIndex={-1}>
+                    <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                       {auth.forgotPassword}
                     </Link>
                   )}
@@ -209,27 +210,23 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
                     autoComplete="current-password"
                     disabled={busy}
                     aria-invalid={!!fieldErrors.password}
-                    className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    className={`pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <EyeIcon open={showPassword} />
                   </button>
                 </div>
-                {fieldErrors.password && <p role="alert" className="text-xs text-red-400">{fieldErrors.password}</p>}
+                {fieldErrors.password && <p role="alert" className="text-xs text-red-500">{fieldErrors.password}</p>}
               </div>
 
-              <Button
-                type="submit"
-                disabled={busy}
-                className="w-full bg-neutral-100 hover:bg-white text-neutral-900 font-medium"
-              >
+              <Button type="submit" disabled={busy} className="w-full font-medium">
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-900 rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
                     {l.submittingButton}
                   </span>
                 ) : l.submitButton}
@@ -238,11 +235,11 @@ export function LoginForm({ emailEnabled }: { emailEnabled: boolean }) {
           </CardContent>
 
           <CardFooter className="justify-center pt-0">
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               {auth.noAccount}{" "}
               <Link
                 href={`/register${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
-                className="text-neutral-300 hover:text-neutral-100 transition-colors font-medium"
+                className="text-foreground hover:underline transition-colors font-medium"
               >
                 {auth.signUp}
               </Link>

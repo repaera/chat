@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Mail } from "lucide-react";
 import { resolveUserLocale } from "@/lib/locale";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -19,19 +20,19 @@ export default async function VerifyEmailPage() {
   const ve = ui.verifyEmail;
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm bg-neutral-900 border-neutral-800 text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm text-center">
         <CardHeader>
-          <div className="text-4xl mb-2">✉️</div>
-          <CardTitle className="text-neutral-100">{ve.title}</CardTitle>
-          <CardDescription className="text-neutral-500">{ve.description}</CardDescription>
+          <div className="flex justify-center mb-2"><Mail className="w-8 h-8 text-muted-foreground" /></div>
+          <CardTitle>{ve.title}</CardTitle>
+          <CardDescription>{ve.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-neutral-600">
+          <p className="text-xs text-muted-foreground">
             {ve.noEmail}{" "}
-            <span className="text-neutral-400">{ve.resend}</span>.
+            <span className="text-foreground/70">{ve.resend}</span>.
           </p>
-          <Button variant="outline" asChild className="w-full border-neutral-700 text-neutral-300">
+          <Button variant="outline" asChild className="w-full">
             <Link href="/login">{ve.backToLogin}</Link>
           </Button>
         </CardContent>

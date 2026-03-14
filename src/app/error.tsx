@@ -53,14 +53,14 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center gap-4 text-center p-4">
-      <p className="text-6xl font-bold text-neutral-700">500</p>
-      <h1 className="text-xl font-semibold text-neutral-200">{s.title}</h1>
-      <p className="text-sm text-neutral-500">{s.description}</p>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center p-4">
+      <p className="text-6xl font-bold text-muted-foreground">500</p>
+      <h1 className="text-xl font-semibold">{s.title}</h1>
+      <p className="text-sm text-muted-foreground">{s.description}</p>
       {error.digest && (
-        <p className="text-xs text-neutral-700 font-mono">Error ID: {error.digest}</p>
+        <p className="text-xs text-muted-foreground/50 font-mono">Error ID: {error.digest}</p>
       )}
-      <Button onClick={reset} variant="outline" className="border-neutral-700 text-neutral-300 mt-2">
+      <Button onClick={reset} variant="outline" className="mt-2">
         {s.retry}
       </Button>
     </div>

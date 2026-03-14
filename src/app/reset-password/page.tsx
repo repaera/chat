@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { Bot, MailCheck } from "lucide-react";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,23 +48,23 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
 
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neutral-800 text-2xl">
-            ✓
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-muted">
+            <Bot className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-semibold text-neutral-100">{fp.pageTitle}</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-xl font-semibold">{fp.pageTitle}</h1>
+          <p className="text-sm text-muted-foreground">
             {sent ? fp.pageSubtitleSent : fp.pageSubtitleDefault}
           </p>
         </div>
 
-        <Card className="bg-neutral-900 border-neutral-800">
+        <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-neutral-100 text-base">{fp.cardTitle}</CardTitle>
-            <CardDescription className="text-neutral-500 text-xs">
+            <CardTitle className="text-base">{fp.cardTitle}</CardTitle>
+            <CardDescription className="text-xs">
               {sent ? fp.cardDescriptionSent : fp.cardDescriptionDefault}
             </CardDescription>
           </CardHeader>
@@ -72,7 +73,7 @@ export default function ForgotPasswordPage() {
             {!sent ? (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-neutral-400 text-xs">
+                  <Label htmlFor="email" className="text-xs">
                     {fp.emailLabel}
                   </Label>
                   <Input
@@ -87,25 +88,19 @@ export default function ForgotPasswordPage() {
                     disabled={loading}
                     aria-describedby={emailError ? "email-error" : undefined}
                     aria-invalid={!!emailError}
-                    className={`bg-neutral-800 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus-visible:ring-neutral-500 ${
-                      emailError ? "border-red-500 focus-visible:ring-red-500" : ""
-                    }`}
+                    className={emailError ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
                   {emailError && (
-                    <p id="email-error" role="alert" className="text-xs text-red-400">
+                    <p id="email-error" role="alert" className="text-xs text-red-500">
                       {emailError}
                     </p>
                   )}
                 </div>
 
-                <Button
-                  onClick={handleSubmit}
-                  disabled={loading || !email}
-                  className="w-full bg-neutral-100 text-neutral-900 hover:bg-white font-medium"
-                >
+                <Button onClick={handleSubmit} disabled={loading || !email} className="w-full font-medium">
                   {loading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-900 rounded-full animate-spin" />
+                      <span className="w-3.5 h-3.5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
                       {fp.submittingButton}
                     </span>
                   ) : fp.submitButton}
@@ -114,25 +109,20 @@ export default function ForgotPasswordPage() {
             ) : (
               <div className="space-y-3">
                 <div className="text-center py-2">
-                  <p className="text-2xl mb-2">📬</p>
-                  <p className="text-sm text-neutral-400">
+                  <MailCheck className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
                     {fp.sentTo}{" "}
-                    <span className="text-neutral-200 font-medium">{email}</span>
+                    <span className="text-foreground font-medium">{email}</span>
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full border-neutral-700 text-neutral-300 hover:bg-neutral-800"
-                  onClick={() => { setSent(false); setEmail(""); }}
-                  disabled={loading}
-                >
+                <Button variant="outline" className="w-full" onClick={() => { setSent(false); setEmail(""); }} disabled={loading}>
                   {fp.sendToAnother}
                 </Button>
               </div>
             )}
 
-            <p className="text-center text-xs text-neutral-600">
-              <Link href="/login" className="text-neutral-400 hover:text-neutral-200 transition-colors">
+            <p className="text-center text-xs">
+              <Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">
                 {fp.backToLogin}
               </Link>
             </p>

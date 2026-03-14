@@ -63,7 +63,7 @@ test.describe.serial("Chat flow", () => {
     await openSidebar(page);
     const convItem = page.locator("aside li").first();
     await convItem.hover();
-    await convItem.getByText("✕").click();
+    await convItem.locator("button[data-sidebar='menu-action']").click();
     await page.getByRole("button", { name: "Delete" }).click();
 
     await expect(page).toHaveURL("/");

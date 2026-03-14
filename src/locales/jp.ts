@@ -110,7 +110,7 @@ export default {
     },
     settings: {
       pageTitle: "設定",
-      backLink: "← 戻る",
+      backLink: "戻る",
       retentionNotice: "{days}日以上操作のない会話は、添付されたメッセージや画像とともに自動的に削除されます。",
       tabProfile: "プロフィール",
       tabSecurity: "セキュリティ",
@@ -166,7 +166,7 @@ export default {
       },
     },
     chatLayout: {
-      newButton: '+ 新規',
+      newButton: '新しいチャット',
       emptyState: '会話がありません。',
       untitledConversation: '新しい会話',
       settings: '設定',

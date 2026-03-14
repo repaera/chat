@@ -110,7 +110,7 @@ export default {
     },
     settings: {
       pageTitle: "Pengaturan",
-      backLink: "← Kembali",
+      backLink: "Kembali",
       retentionNotice: "Percakapan yang tidak aktif lebih dari {days} hari akan dihapus otomatis beserta semua pesan dan gambar yang terlampir.",
       tabProfile: "Profil",
       tabSecurity: "Keamanan",
@@ -167,7 +167,7 @@ export default {
       },
     },
     chatLayout: {
-      newButton: '+ Baru',
+      newButton: 'Chat Baru',
       emptyState: 'Belum ada percakapan.',
       untitledConversation: 'Percakapan Baru',
       settings: 'Pengaturan',
