@@ -1,6 +1,10 @@
 # Publish — builds a multi-arch Docker image and pushes to GHCR.
-# Triggered automatically after CI passes on the main branch.
-# Image: ghcr.io/<owner>/<repo>:latest  +  :<commit-sha>
+# Triggered by:
+#   - Every push to main → :latest + :<short-sha>
+#   - A semver tag push (e.g. 0.1.0) → :latest + :<short-sha> + :0.1.0
+#
+# Tagging workflow:
+#   git tag 0.1.0 && git push origin 0.1.0
 #
 # One-time setup (do this before first push):
 #   Repo → Settings → Actions → General → Workflow permissions → Read and write
@@ -9,14 +13,16 @@
 name: Publish
 
 on:
-  workflow_run:
-    workflows: [CI]
+  push:
     branches: [main]
-    types: [completed]
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: test
     runs-on: ubuntu-latest
 
     permissions:
@@ -25,8 +31,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v3
@@ -41,10 +45,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lowercase image name
-        id: image
+      - name: Compute tags
+        id: meta
         run: |
-          echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAGS="${IMAGE}:latest,${IMAGE}:${SHORT_SHA}"
+          # If triggered by a semver tag, add it as an additional tag
+          REF="${{ github.ref }}"
+          if [[ "$REF" == refs/tags/* ]]; then
+            VERSION="${REF#refs/tags/}"
+            TAGS="${TAGS},${IMAGE}:${VERSION}"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          echo "revision=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -52,11 +66,9 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:${{ github.event.workflow_run.head_sha }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

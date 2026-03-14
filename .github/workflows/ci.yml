@@ -1,12 +1,12 @@
-# CI — runs on every push and pull request.
+# CI — runs on non-main branch pushes and pull requests.
 # Calls the reusable test.yml workflow (lint, type check, unit tests).
-# publish.yml watches for this workflow to succeed on main before pushing to GHCR.
+# Main branch and tag pushes are handled by publish.yml (tests + build + push).
 
 name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches-ignore: [main]
   pull_request:
 
 jobs:
