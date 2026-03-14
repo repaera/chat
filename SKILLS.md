@@ -158,12 +158,14 @@ await db.message.create({ data: { ... } }).catch((err: unknown) => {
 
 ---
 
-## Pattern: In-memory rate limiting
+## Pattern: Rate limiting
+
+`checkRateLimit` is async. Always `await` it.
 
 ```ts
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const result = checkRateLimit(`user:${userId}`, {
+const result = await checkRateLimit(`user:${userId}`, {
   limit: 20,
   windowMs: 60_000, // 1 minute
 });
@@ -175,29 +177,15 @@ if (!result.success) {
 }
 ```
 
-Note: in-memory — resets on server restart, not safe for multi-instance deployments. For persistent limits, use DB-backed counting (see `docs/weekly-message-limit.md`).
+**Backend selection** — automatic, no code change needed:
+- No `REDIS_URL` env var → in-memory sliding window (single-instance; resets on restart)
+- `REDIS_URL` set → Redis sorted-set sliding window via ioredis (`src/lib/redis.ts`)
+  - Shared across all replicas; survives restarts
+  - Any Redis-compatible host: `redis://`, `rediss://` (TLS for Upstash/ElastiCache)
+
 
 ---
 
-## Pattern: DB-backed weekly quota
-
-```ts
-const weeklyLimit = process.env.WEEKLY_MESSAGE_LIMIT
-  ? parseInt(process.env.WEEKLY_MESSAGE_LIMIT, 10)
-  : 0;
-
-if (weeklyLimit > 0) {
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const count = await db.message.count({
-    where: { role: "user", conversation: { userId }, createdAt: { gte: since } },
-  });
-  if (count >= weeklyLimit) {
-    return Response.json({ error: "Weekly limit reached." }, { status: 429 });
-  }
-}
-```
-
----
 
 ## Pattern: Leaflet map (SSR-safe)
 
@@ -303,8 +291,6 @@ The `handleSubmit` catch block checks `err.status`:
   if (errStatus === 410) {
     toast.error(cc.toasts.imageExpired, { duration: 5000 });
     setPendingImage(null);
-  } else if (errStatus === 429) {
-    toast.error(cc.toasts.weeklyLimitReached, { duration: 8000 });
   }
 }
 ```

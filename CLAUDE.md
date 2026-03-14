@@ -214,8 +214,9 @@ Chat continues normally if neither is set.
 
 ## Rate Limits
 
-- **Per-minute**: `checkRateLimit("user:{id}", { limit: 20, windowMs: 60_000 })` — in-memory, not multi-replica safe
-- **Weekly (optional)**: Set `WEEKLY_MESSAGE_LIMIT=N` — DB-backed count of user messages in last 7 days. See `docs/weekly-message-limit.md`.
+- **Per-minute**: `await checkRateLimit("user:{id}", { limit: 20, windowMs: 60_000 })` — async, returns `Promise<RateLimitResult>`
+  - No `REDIS_URL`: in-memory sliding window (single-instance only, resets on restart)
+  - With `REDIS_URL`: Redis sorted-set sliding window shared across all replicas (`src/lib/redis.ts` — ioredis singleton, any Redis-compatible host)
 
 ---
 

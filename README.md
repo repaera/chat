@@ -1,13 +1,19 @@
 # Chat
 
-A general-purpose AI chat interface powered by MCP. Connect any MCP server — delivery service, handyman booking, task management, or any domain — and interact with it through a natural language conversation. Built with Next.js App Router, AI SDK v5, and Prisma v7.
+![chat interface](images/chat_root_empty.png)
+
+**Screenshots:** [click here](images)
+
+---
+
+A general-purpose AI chat interface powered by MCP. Connect any MCP server — delivery service, handyman booking, task management, or any domain — and interact with it through a natural language conversation. Built with Next.js App Router, AI SDK v6, and Prisma v7.
 
 ---
 
 ## Features
 
 - **MCP tool integration** — connects to one external MCP server via Streamable HTTP; choose either `MCP_URL` (any backend) or `MCP_APPS_URL` (TypeScript + embedded UI) — setting both is rejected at runtime
-- **Deployment customization** — app name, AI persona context, and chat suggestions are all env-var driven; one codebase, multiple deployments
+- **Deployment customization** — app name, AI persona context, and locale strings are all configurable; one codebase, multiple deployments
 - **Streaming AI responses** — real-time LLM output with typing indicators
 - **Image attachments** — attach images to messages; fetched server-side and sent as binary to the LLM
 - **Location sharing** — v1: browser geolocation; v2: Google Places search + commute calculator with interactive map
@@ -77,17 +83,10 @@ NEXT_PUBLIC_APP_BG_COLOR="#ffffff"                 # PWA splash screen backgroun
 # APP_PERSONA_CONTEXT="online food delivery service"
 # APP_PERSONA_CONTEXT="handyman booking platform"
 
-# Override the empty-state hint shown before the first message.
-# Falls back to the active locale string if not set.
-# ⚠ Single-language override — applies to all users regardless of their locale.
-#   For per-locale text, leave unset and edit src/locales/<lang>.ts instead.
-# NEXT_PUBLIC_APP_CHAT_HINT="Track orders, report issues, and get delivery support."
-
-# Override suggestion buttons as a JSON array (3 items recommended).
-# Falls back to the active locale strings if not set.
-# ⚠ Single-language override — applies to all users regardless of their locale.
-#   For per-locale text, leave unset and edit src/locales/<lang>.ts instead.
-# NEXT_PUBLIC_APP_CHAT_SUGGESTIONS='["Track my order","Cancel order","Where'\''s my driver?"]'
+# Chat hint and suggestion buttons are locale-only — edit src/locales/<lang>.ts
+# (ui.emptyHint and ui.suggestions). No env var overrides exist for these.
+# Help button in chat header (optional)
+# NEXT_PUBLIC_APP_HELP_URL=https://help.yourdomain.com
 
 # ── Icons & OG (optional — falls back to public/ files if not set) ──
 # All values accept absolute URLs or relative paths (e.g. /icon.png)
@@ -110,11 +109,18 @@ NEXT_PUBLIC_GOOGLE_MAPS_REGION=                    # optional ISO 3166-1 alpha-2
 DATABASE_PROVIDER=sqlite                           # sqlite | postgresql | mysql
 DATABASE_URL=file:./dev.db                         # SQLite default
 
-# PostgreSQL (recommended for production)
+# PostgreSQL (local or managed: AWS RDS, Aurora, Neon, Supabase, etc.)
 # DATABASE_URL=postgresql://user:password@host:5432/dbname
+# DATABASE_PROVIDER=postgresql
+
+# MySQL / MariaDB (local or managed: PlanetScale, Aurora MySQL, RDS, etc.)
+# DATABASE_URL=mysql://user:password@host:3306/dbname
+# DATABASE_PROVIDER=mysql
 
 # ── Auth ─────────────────────────────────────────────────────
 BETTER_AUTH_SECRET=                                # * openssl rand -hex 32
+# Must match NEXT_PUBLIC_APP_URL — used to build email verification/reset links
+BETTER_AUTH_URL=http://localhost:3000
 
 # Google OAuth (optional)
 # GOOGLE_CLIENT_ID=
@@ -208,6 +214,13 @@ TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 # NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/...
 # SENTRY_ORG=your-org
 # SENTRY_PROJECT=your-project
+
+# ── Redis (optional) ─────────────────────────────────────────
+# Enables shared sliding-window rate limiting across multiple app replicas.
+# Leave unset for single-instance deployments — falls back to in-memory.
+# Supports self-hosted Redis, AWS ElastiCache, Upstash, Redis Cloud, etc.
+# REDIS_URL=redis://localhost:6379
+# REDIS_URL=rediss://user:token@hostname:6380   # Upstash / TLS
 ```
 
 > **Provider selection:** Set `LLM_PROVIDER` explicitly to choose a provider. If unset, the app auto-detects based on which API key is present. OpenRouter is the final fallback.
@@ -254,11 +267,13 @@ curl -fsSL https://raw.githubusercontent.com/repaera/chat/main/install.sh | sudo
 
 The script will:
 - Install Docker and Docker Compose if not already present
-- Prompt for your domain, LLM provider, R2 credentials, and other settings
+- Prompt for your domain, database choice (local PostgreSQL, local MySQL/MariaDB, or external/managed), LLM provider, R2 credentials, and other settings
 - Clone the repo, write `.env`, build the Docker image
-- Start PostgreSQL, run migrations, start the app and Nginx
-- Obtain a Let's Encrypt SSL certificate automatically
+- Start the database (if local), run migrations, start the app and Nginx
+- Obtain a Let's Encrypt SSL certificate automatically (or configure Cloudflare proxy mode)
 - Set up a cron job for certificate renewal
+
+Pass `--verbose` to stream the Docker build output in real time.
 
 **Non-interactive (CI / scripted deploys):**
 
@@ -640,7 +655,7 @@ If neither is set, chat works normally without tools.
 
 ### Docker Compose + Nginx + Let's Encrypt
 
-Suitable for a VPS. This setup runs the app, PostgreSQL, Nginx as a reverse proxy, and Certbot for automatic SSL.
+Suitable for a VPS. This setup runs the app, a local database (PostgreSQL or MySQL/MariaDB), Nginx as a reverse proxy, and Certbot for automatic SSL. You can also point it at an external managed database (RDS, Aurora, Neon, Supabase, PlanetScale, etc.) and skip the local DB container entirely.
 
 #### Directory layout on the server
 
@@ -668,7 +683,6 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD}@db:5432/app_db
     depends_on:
       db:
         condition: service_healthy
@@ -763,8 +777,13 @@ server {
 # App
 NEXT_PUBLIC_APP_URL=https://yourdomain.com
 NEXT_PUBLIC_APP_NAME="Your App Name"
+BETTER_AUTH_SECRET=           # openssl rand -hex 32
+BETTER_AUTH_URL=https://yourdomain.com
+
+# Database — local PostgreSQL (adjust for MySQL or external DB)
 DATABASE_PROVIDER=postgresql
-BETTER_AUTH_SECRET=   # openssl rand -hex 32
+DATABASE_URL=postgresql://app:${POSTGRES_PASSWORD}@db:5432/app_db
+POSTGRES_PASSWORD=            # strong random password
 
 # AI persona (optional)
 APP_PERSONA_CONTEXT=your service domain here
@@ -773,9 +792,6 @@ APP_PERSONA_CONTEXT=your service domain here
 # See .env.example for all provider options
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4o-mini
-
-# Database
-POSTGRES_PASSWORD=    # strong random password
 
 # Storage
 R2_ACCOUNT_ID=
@@ -958,7 +974,8 @@ fly postgres attach chat-db   # sets DATABASE_URL secret automatically
 # Set remaining secrets
 fly secrets set \
   BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
-  NEXT_PUBLIC_APP_URL=https://$(fly info --name | grep Hostname | awk '{print $2}') \
+  BETTER_AUTH_URL=https://your-app.fly.dev \
+  NEXT_PUBLIC_APP_URL=https://your-app.fly.dev \
   LLM_PROVIDER=openrouter \
   OPENROUTER_API_KEY=sk-or-... \
   R2_ACCOUNT_ID=... \
@@ -1026,6 +1043,7 @@ dokku config:set chat \
   NEXT_PUBLIC_APP_URL=https://chat.yourdomain.com \
   DATABASE_PROVIDER=postgresql \
   BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
+  BETTER_AUTH_URL=https://chat.yourdomain.com \
   TRIGGER_SECRET_KEY=tr_live_... \
   R2_ACCOUNT_ID=... \
   R2_ACCESS_KEY_ID=... \
@@ -1087,8 +1105,8 @@ dokku buildpacks:set chat https://github.com/heroku/heroku-buildpack-nodejs
 
 ## Production Notes
 
-- **SQLite is not recommended for production** with multiple app instances — use PostgreSQL.
-- **Rate limiting is in-memory** — not shared across replicas. For multi-instance deployments, use Redis-based rate limiting.
+- **SQLite is not recommended for production** with multiple app instances — use PostgreSQL or MySQL/MariaDB.
+- **Rate limiting** — defaults to in-memory (not shared across replicas). Set `REDIS_URL` to enable a Redis-backed sliding-window limiter shared across all instances. Any Redis-compatible host works: self-hosted, AWS ElastiCache, Upstash, Redis Cloud.
 - **MCP connections are per-request** — each chat request opens and closes a connection. Ensure your MCP server handles concurrent connections.
 - **Nginx `proxy_buffering off`** is required — without it, SSE streaming is buffered and users see no output until the full response completes.
 - **Nginx `proxy_read_timeout 300s`** is required — reasoning models can take up to a minute. The default 60s timeout will cut connections prematurely.
