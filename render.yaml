@@ -83,6 +83,8 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: PRESERVE_IMAGES
+        sync: false        # set to "true" if an MCP server stores R2 image URLs externally
 
 databases:
   - name: chat-db
