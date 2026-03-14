@@ -3,6 +3,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import type { UIMessage } from "ai";
+import { Button } from "@/components/ui/button";
 import Linkify from "linkify-react";
 import { Bot } from "lucide-react";
 import { LocationBubble, CommuteBubble } from "@/components/chat/LocationBubble";
@@ -127,13 +128,14 @@ export function MessageList({
 							<p className="text-sm text-muted-foreground">{cc.emptyHint}</p>
 							<div className="flex flex-col gap-2 w-full max-w-xs">
 								{cc.suggestions.map((s) => (
-									<button
+									<Button
 										key={s}
+										variant="outline"
 										onClick={() => onSuggestionClick(s)}
-										className="text-sm text-left px-4 py-2.5 rounded-xl bg-muted border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all"
+										className="text-sm text-left h-auto px-4 py-2.5 rounded-xl justify-start whitespace-normal"
 									>
 										{s}
-									</button>
+									</Button>
 								))}
 							</div>
 						</div>

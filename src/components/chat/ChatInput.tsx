@@ -84,8 +84,8 @@ export function ChatInput({
 	};
 
 	return (
-		<div className="px-4 pb-6 pt-2 shrink-0 flex justify-center sticky bottom-0 bg-white backdrop-blur-md">
-			<div className="max-w-2xl w-full rounded-2xl shadow border border-zinc-200 bg-white p-2.5">
+		<div className="px-4 pb-6 pt-2 shrink-0 flex justify-center sticky bottom-0 bg-background backdrop-blur-md">
+			<div className="max-w-2xl w-full rounded-2xl shadow border border-border bg-background p-2.5">
 				{/* Pending image preview */}
 				{pendingImage && (
 					<div className="flex items-center gap-2 px-0.5 pb-1.5">
@@ -95,13 +95,15 @@ export function ChatInput({
 								alt="Preview"
 								className="w-14 h-14 rounded-lg object-cover border border-transparent"
 							/>
-							<button
+							<Button
 								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClearImage}
-								className="absolute -top-1 -right-1 rounded-full bg-zinc-800 text-white text-[10px] flex items-center justify-center align-middle leading-none hover:bg-zinc-700"
+								className="absolute -top-1 -right-1 rounded-full h-5 w-5 bg-foreground/80 text-background hover:bg-foreground"
 							>
-								<X className="size-4" />
-							</button>
+								<X className="size-3" />
+							</Button>
 						</div>
 					</div>
 				)}
@@ -109,27 +111,29 @@ export function ChatInput({
 				{/* Pending location preview */}
 				{pendingLocation && (
 					<div className="flex items-center gap-2 px-0.5 pb-1.5">
-						<div className="relative flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm max-w-xs">
+						<div className="relative flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 text-sm max-w-xs">
 							{pendingLocation.type === "location" ? (
 								<>
-									<MapPin className="w-4 h-4 shrink-0 text-zinc-500" />
-									<span className="text-xs text-zinc-700 truncate">{pendingLocation.label}</span>
+									<MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+									<span className="text-xs text-foreground truncate">{pendingLocation.label}</span>
 								</>
 							) : (
 								<>
-									<MapPin className="w-4 h-4 shrink-0 text-zinc-500" />
-									<span className="text-xs text-zinc-700 truncate">
+									<MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+									<span className="text-xs text-foreground truncate">
 										{pendingLocation.origin.label} → {pendingLocation.destination.label}
 									</span>
 								</>
 							)}
-							<button
+							<Button
 								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClearLocation}
-								className="absolute -top-1 -right-1 rounded-full bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700"
+								className="absolute -top-1 -right-1 rounded-full h-5 w-5 bg-foreground/80 text-background hover:bg-foreground"
 							>
-								<X className="size-4" />
-							</button>
+								<X className="size-3" />
+							</Button>
 						</div>
 					</div>
 				)}
@@ -146,8 +150,8 @@ export function ChatInput({
 							rows={1}
 							className="
                 w-full resize-none rounded-none border-0
-                bg-transparent p-0.5 text-sm sm:text-base text-black caret-black
-                placeholder:text-zinc-500 focus:outline-none
+                bg-transparent p-0.5 text-sm sm:text-base text-foreground caret-foreground
+                placeholder:text-muted-foreground focus:outline-none
                 disabled:opacity-50 max-h-32 overflow-y-auto leading-relaxed
               "
 							style={{ minHeight: "44px" }}
@@ -162,7 +166,7 @@ export function ChatInput({
 										className="fixed inset-0 z-10"
 										onClick={() => setAttachMenuOpen(false)}
 									/>
-									<div className="absolute bottom-full left-0 mb-2 z-20 flex flex-col gap-0.5 rounded-lg border border-zinc-100 bg-white p-1 shadow-sm min-w-[160px]">
+									<div className="absolute bottom-full left-0 mb-2 z-20 flex flex-col gap-0.5 rounded-lg border border-border bg-background p-1 shadow-sm min-w-40">
 										<ImageUploadButton
 											asMenuItem
 											onUploaded={(result) => {
@@ -171,34 +175,37 @@ export function ChatInput({
 											}}
 											disabled={isLoading || !!pendingImage}
 										/>
-										<button
+										<Button
 											type="button"
+											variant="ghost"
 											onClick={handleShareLocation}
 											disabled={isLoading}
-											className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-black hover:bg-zinc-100 disabled:opacity-50 transition-colors w-full"
+											className="w-full justify-start gap-2.5 px-3 py-2 h-auto text-sm rounded-lg"
 										>
 											<MapPin className="w-5 h-5" />
 											{cc.locationLabel}
-										</button>
+										</Button>
 									</div>
 								</>
 							)}
-							<button
+							<Button
 								type="button"
+								variant="secondary"
+								size="icon"
 								onClick={() => setAttachMenuOpen((v) => !v)}
 								disabled={isLoading}
-								className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-50 text-black flex items-center justify-center transition-all disabled:opacity-50"
+								className="w-10 h-10 rounded-xl"
 							>
 								<Plus
 									className={`w-5 h-5 transition-transform duration-200 ${attachMenuOpen ? "rotate-45" : "rotate-0"}`}
 								/>
-							</button>
+							</Button>
 						</div>
 
 						<Button
 							type="submit"
 							disabled={isLoading || !input.trim()}
-							className="shrink-0 w-10 h-10 rounded-xl bg-zinc-700 hover:bg-zinc-600 text-zinc-100 p-0"
+							className="shrink-0 w-10 h-10 rounded-xl p-0"
 						>
 							<ArrowUp className="w-5 h-5" />
 						</Button>

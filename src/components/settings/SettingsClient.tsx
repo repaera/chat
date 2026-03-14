@@ -7,10 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useLocale } from "@/components/providers/LocaleProvider";
@@ -121,21 +129,22 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
         <ul className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
           {navItems.map(({ key, label, danger }) => (
             <li key={key} className="shrink-0 sm:shrink sm:w-full">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setSection(key)}
                 className={[
-                  "w-full text-left px-3 py-2 text-sm rounded-md transition-colors whitespace-nowrap",
+                  "w-full justify-start text-sm whitespace-nowrap",
                   section === key
                     ? danger
                       ? "bg-accent text-red-600 font-medium"
                       : "bg-accent text-accent-foreground font-medium"
                     : danger
-                      ? "text-red-500 hover:bg-accent"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      ? "text-red-500"
+                      : "text-muted-foreground",
                 ].join(" ")}
               >
                 {label}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -152,7 +161,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
               <p className="text-sm text-muted-foreground mt-0.5">{s.profileCard.description}</p>
             </div>
 
-            <hr />
+            <Separator />
 
             {/* Name */}
             <div className="space-y-3 max-w-sm">
@@ -167,7 +176,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
 
             {emailEnabled && (
               <>
-                <hr />
+                <Separator />
 
                 {/* Email */}
                 <div className="space-y-3 max-w-sm">
@@ -183,23 +192,27 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
               </>
             )}
 
-            <hr />
+            <Separator />
 
             {/* Language */}
             <div className="space-y-1.5 max-w-sm">
               <Label>{s.profileCard.localeLabel}</Label>
               <div className="flex items-center gap-2">
-                <select
-                  value={locale}
-                  onChange={(e) => handleSaveLocale(e.target.value)}
+                <Select
+                  value={locale || "__auto__"}
+                  onValueChange={(v) => handleSaveLocale(v === "__auto__" ? "" : v)}
                   disabled={savingLocale}
-                  className="flex-1 rounded-md bg-background border border-input text-foreground text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
                 >
-                  <option value="">{s.profileCard.localeAuto}</option>
-                  {(Object.entries(s.profileCard.localeOptions) as [string, string][]).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__auto__">{s.profileCard.localeAuto}</SelectItem>
+                    {(Object.entries(s.profileCard.localeOptions) as [string, string][]).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {savingLocale && <span className="text-xs text-muted-foreground shrink-0">{t.common.saving}</span>}
               </div>
               <p className="text-xs text-muted-foreground">{s.profileCard.localeHint}</p>
@@ -215,7 +228,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
               <p className="text-sm text-muted-foreground mt-0.5">{s.securityCard.description}</p>
             </div>
 
-            <hr />
+            <Separator />
 
             <div className="space-y-4 max-w-sm">
               <div className="space-y-1.5">
@@ -241,7 +254,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
               <p className="text-sm text-muted-foreground mt-0.5">{s.retentionNotice.replace("{days}", String(retentionDays))}</p>
             </div>
 
-            <hr />
+            <Separator />
 
             <div className="space-y-3 max-w-sm">
               <div>

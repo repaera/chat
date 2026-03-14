@@ -90,11 +90,12 @@ export function ImageUploadButton({ onUploaded, disabled, asMenuItem }: Props) {
   if (asMenuItem) {
     return (
       <>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           disabled={disabled || isUploading}
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-black hover:bg-neutral-100 disabled:opacity-50 transition-colors w-full"
+          className="w-full justify-start gap-2.5 px-3 py-2 h-auto text-sm rounded-lg"
         >
           {isUploading ? (
             <CloudUpload className="w-5 h-5 animate-slide-up" />
@@ -102,7 +103,7 @@ export function ImageUploadButton({ onUploaded, disabled, asMenuItem }: Props) {
             <Image className="w-5 h-5" />
           )}
           {isUploading ? iu.uploading : iu.menuLabel}
-        </button>
+        </Button>
         <input
           ref={inputRef}
           type="file"

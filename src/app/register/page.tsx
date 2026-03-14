@@ -276,13 +276,15 @@ function RegisterForm() {
                     aria-invalid={!!fieldErrors.password}
                     className={`pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                   >
                     <EyeIcon open={showPassword} />
-                  </button>
+                  </Button>
                 </div>
                 {password && <PasswordStrengthBar password={password} />}
                 {fieldErrors.password && <p role="alert" className="text-xs text-red-500">{fieldErrors.password}</p>}
@@ -309,13 +311,15 @@ function RegisterForm() {
                           : ""
                     }`}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                   >
                     <EyeIcon open={showConfirm} />
-                  </button>
+                  </Button>
                 </div>
                 {confirmPassword && !fieldErrors.confirmPassword && (
                   <p className={`text-xs ${confirmPassword === password ? "text-green-600" : "text-red-500"}`}>
