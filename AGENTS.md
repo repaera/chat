@@ -57,8 +57,8 @@ Instructions for any AI agent (Claude Code or otherwise) working on this codebas
 
 **Adding a new UI string:**
 1. Add to `src/locales/en.ts` under the appropriate `ui.*` key
-2. Mirror the same key in `id.ts`, `kr.ts`, `jp.ts` with translations
-3. The key path must match exactly across all 4 files — TypeScript will error if it doesn't
+2. Mirror the same key in all other locale files (`id.ts`, `kr.ts`, `jp.ts`, `es.ts`, `zh.ts`, `de.ts`, `nl.ts`, `fr.ts`, `it.ts`) with translations
+3. The key path must match exactly across all 10 files — TypeScript will error if it doesn't
 
 **Adding a new system prompt string:**
 1. Add to `src/locales/en.ts` under `system.*`
@@ -128,7 +128,7 @@ Any change to the upload flow must preserve this invariant:
 
 - [ ] Read all files you will touch
 - [ ] Check `docs/` for relevant existing guides
-- [ ] Locale strings added to all 4 locale files with matching keys
+- [ ] Locale strings added to all 10 locale files with matching keys
 - [ ] Zod validation for any new API input
 - [ ] Session verified at top of any new API route
 - [ ] Error responses use correct HTTP status codes

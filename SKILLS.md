@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
 ## Pattern: Adding a new locale string
 
-Add to ALL 4 files with the same key path. TypeScript enforces the shape via the return type of `resolveUserLocale`.
+Add to ALL 10 files with the same key path. TypeScript enforces the shape via the return type of `resolveUserLocale`.
 
 ```ts
 // src/locales/en.ts — inside the appropriate section
@@ -45,14 +45,8 @@ toasts: {
   yourNewKey: "Your new message.",   // ← add here
 },
 
-// src/locales/id.ts — same path
-  yourNewKey: "Pesan baru Anda.",
-
-// src/locales/kr.ts
-  yourNewKey: "새 메시지입니다.",
-
-// src/locales/jp.ts
-  yourNewKey: "新しいメッセージです。",
+// Mirror in all other locale files at the same key path:
+// id.ts, kr.ts, jp.ts, es.ts, zh.ts, de.ts, nl.ts, fr.ts, it.ts
 ```
 
 ---

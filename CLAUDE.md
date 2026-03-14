@@ -16,7 +16,7 @@ This file is auto-loaded by Claude Code on every session. Read it fully before t
 | Jobs | Trigger.dev v3 — scheduled cleanup tasks |
 | Linting | Biome — **tabs**, **double quotes** |
 | Testing | Vitest + Playwright |
-| i18n | Static TypeScript files — `en`, `id`, `kr`, `jp` |
+| i18n | Static TypeScript files — `en`, `id`, `kr`, `jp`, `es`, `zh`, `de`, `nl`, `fr`, `it` |
 
 ---
 

@@ -20,7 +20,7 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 - **Conversation history** — persistent chat history with cursor-based pagination and infinite scroll
 - **Authentication** — email/password with email verification, password reset, email change, and Google OAuth
 - **Locale detection** — auto-detect user language from IP geolocation (IPinfo Lite) with Accept-Language fallback; user-overridable in Settings
-- **i18n system** — lightweight custom locale system covering both UI strings and AI system prompts (EN, ID, KR, JP); no third-party i18n library required
+- **i18n system** — lightweight custom locale system covering both UI strings and AI system prompts (EN, ID, KR, JP, ES, ZH, DE, NL, FR, IT); no third-party i18n library required
 - **Link detection** — URLs in chat messages are automatically rendered as clickable links
 - **Background jobs** — automatic cleanup of orphaned images and old conversations via Trigger.dev
 
@@ -183,7 +183,7 @@ R2_BUCKET_NAME=my-chat-app                         # * required
 R2_PUBLIC_URL=https://assets.yourdomain.com        # * required — custom domain on R2
 
 # ── Locale / i18n ────────────────────────────────────────────
-APP_LOCALE=en                                      # en | id | kr | jp — server-wide default
+APP_LOCALE=en                                      # en | id | kr | jp | es | zh | de | nl | fr | it — server-wide default
                                                    # Per-user locale overrides this via DB
 
 # ── Background Jobs / Trigger.dev ────────────────────────────
@@ -518,7 +518,7 @@ Trigger.dev manages worker infrastructure — no server-side worker process is n
 
 The app ships with a lightweight custom locale system covering both AI system prompts and all UI strings (buttons, errors, labels, toasts). No third-party i18n library is needed — locale files are plain TypeScript objects with full type safety.
 
-Supported languages: **English** (`en`), **Bahasa Indonesia** (`id`), **한국어** (`kr`), **日本語** (`jp`).
+Supported languages: **English** (`en`), **Bahasa Indonesia** (`id`), **한국어** (`kr`), **日本語** (`jp`), **Español** (`es`), **中文** (`zh`), **Deutsch** (`de`), **Nederlands** (`nl`), **Français** (`fr`), **Italiano** (`it`).
 
 #### How it works
 
@@ -569,7 +569,7 @@ export default {
 
 ```ts
 import xx from "./xx";
-const locales: Record<string, Locale> = { en, id, kr, jp, xx };
+const locales: Record<string, Locale> = { en, id, kr, jp, es, zh, de, nl, fr, it, xx };
 ```
 
 3. Add the country → locale mapping in `src/lib/locale.ts`:
@@ -594,7 +594,7 @@ const langToLocale: Record<string, string> = {
 };
 ```
 
-5. Add the display name to `localeOptions` in **all existing locale files** (`en.ts`, `id.ts`, `kr.ts`, `jp.ts`):
+5. Add the display name to `localeOptions` in **all existing locale files** (`en.ts`, `id.ts`, `kr.ts`, `jp.ts`, `es.ts`, `zh.ts`, `de.ts`, `nl.ts`, `fr.ts`, `it.ts`):
 
 ```ts
 localeOptions: {
@@ -602,6 +602,12 @@ localeOptions: {
   id: "Bahasa Indonesia",
   kr: "한국어 (Korean)",
   jp: "日本語 (Japanese)",
+  es: "Español (Spanish)",
+  zh: "中文 (Mandarin)",
+  de: "Deutsch (German)",
+  nl: "Nederlands (Dutch)",
+  fr: "Français (French)",
+  it: "Italiano (Italian)",
   xx: "New Language",  // ← add here in all files
 },
 ```
