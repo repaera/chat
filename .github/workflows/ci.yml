@@ -1,0 +1,14 @@
+# CI — runs on every push and pull request.
+# Calls the reusable test.yml workflow (lint, type check, unit tests).
+# publish.yml watches for this workflow to succeed on main before pushing to GHCR.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml

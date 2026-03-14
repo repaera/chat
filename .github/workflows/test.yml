@@ -1,0 +1,41 @@
+# Reusable test workflow — called by ci.yml (and any other workflow via workflow_call).
+# Runs: Biome lint, TypeScript check, Vitest unit tests.
+# Does NOT run Playwright E2E (needs a live server + real DB — run separately).
+
+name: Test
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      # Minimal env for prisma generate + tsc + vitest — no real secrets needed
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: file:./ci.db
+      BETTER_AUTH_SECRET: ci-dummy-not-real
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint & format (Biome)
+        run: npx biome ci .
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test:run
