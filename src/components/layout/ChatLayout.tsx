@@ -1,7 +1,7 @@
 "use client";
 import { appConfig } from "@/lib/app-config";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
 import ChatClient from "@/components/chat/ChatClient";
+import { TypedText } from "@/components/chat/TypedText";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { Bot, X, MoreHorizontal, Plus, LifeBuoy } from "lucide-react";
 
@@ -221,7 +222,6 @@ export default function ChatLayout({
   const { t } = useLocale();
   const cl = t.chatLayout;
 
-  const router = useRouter();
   const [conversations, setConversations] = useState(initialConversations);
   const [currentId, setCurrentId] = useState(activeConversationId);
   const [chatKey, setChatKey] = useState(activeConversationId ?? "root");
@@ -274,13 +274,16 @@ export default function ChatLayout({
           <header className="flex h-12 md:h-14 shrink-0 items-center gap-2 px-3 z-10">
             <SidebarTrigger className="h-7 w-7 md:h-9 md:w-9 md:[&_svg]:size-5!" />
             <p className="truncate text-sm md:text-base font-medium text-muted-foreground flex-1 self-center">
-              {currentId
-                ? (() => {
-                    const activeConv = conversations.find((c) => c.id === currentId);
-                    // Prioritize optimistic title/preview before the static fallback
-                    return activeConv?.title ?? activeConv?.preview ?? cl.untitledConversation;
-                  })()
-                : appConfig.name}
+              <TypedText
+                animate={justCreated}
+                typeSpeed={35}
+                text={currentId
+                  ? (() => {
+                      const activeConv = conversations.find((c) => c.id === currentId);
+                      return activeConv?.title ?? activeConv?.preview ?? cl.untitledConversation;
+                    })()
+                  : appConfig.name}
+              />
             </p>
             {appConfig.helpCenterUrl && (
               <Button variant="ghost" asChild className="shrink-0 h-8 w-8 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground self-center">

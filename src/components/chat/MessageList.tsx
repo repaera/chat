@@ -8,6 +8,7 @@ import Linkify from "linkify-react";
 import { Bot } from "lucide-react";
 import { LocationBubble, CommuteBubble } from "@/components/chat/LocationBubble";
 import type { LocationPart, CommutePart } from "@/components/chat/location-types";
+import { TypedText } from "@/components/chat/TypedText";
 
 // ── Image with blur-to-sharp transition ────────────────────────────────────
 function ChatImage({ src }: { src: string }) {
@@ -99,6 +100,27 @@ export function MessageList({
 	onSuggestionClick,
 	cc,
 }: Props) {
+	// Track which message to animate with TypedText after streaming completes.
+	// Done synchronously in render (via ref) to avoid the async setState gap that
+	// causes a flicker: streamed text visible → disappears → TypedText retypes.
+	const prevStatusRef = useRef(status);
+	const animateMessageIdRef = useRef<string | null>(null);
+
+	if (prevStatusRef.current !== "ready" && status === "ready") {
+		const lastMsg = [...messages].reverse().find((m) => m.role === "assistant");
+		animateMessageIdRef.current = lastMsg?.id ?? null;
+	}
+	prevStatusRef.current = status;
+
+	const animateMessageId = animateMessageIdRef.current;
+	const [animationDoneId, setAnimationDoneId] = useState<string | null>(null);
+
+	const isStreaming = status === "streaming" || status === "submitted";
+
+	// The last assistant message ID — hidden during streaming so it never flashes
+	// before TypedText takes over.
+	const lastAssistantId = [...messages].reverse().find((m) => m.role === "assistant")?.id;
+
 	return (
 		<div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-y-none">
 			<div className="min-h-full flex flex-col justify-end px-4 pt-6 pb-6">
@@ -147,6 +169,10 @@ export function MessageList({
 							(p) => p.type === "text" && (p as { type: "text"; text: string }).text.length > 0,
 						);
 						if (m.role === "assistant" && !hasText) return null;
+
+						// Hide the last assistant message while streaming — TypedText will
+						// animate it in cleanly once streaming completes, with no flicker.
+						if (isStreaming && m.id === lastAssistantId && m.role === "assistant") return null;
 
 						return (
 							<div
@@ -218,19 +244,32 @@ export function MessageList({
 											const textPart = part as { type: "text"; text: string };
 											if (!textPart.text) return null;
 											const isUser = m.role === "user";
+											const shouldAnimate =
+												!isUser &&
+												i === 0 &&
+												m.id === animateMessageId &&
+												m.id !== animationDoneId;
 											return (
 												<p key={`txt-${i}`} className="whitespace-pre-wrap leading-relaxed">
-													<Linkify
-														options={{
-															target: "_blank",
-															rel: "noopener noreferrer",
-															className: isUser
-																? "underline underline-offset-2 hover:opacity-80"
-																: "text-blue-600 underline underline-offset-2 hover:text-blue-700",
-														}}
-													>
-														{textPart.text}
-													</Linkify>
+													{shouldAnimate ? (
+														<TypedText
+															text={textPart.text}
+															typeSpeed={5}
+															onComplete={() => setAnimationDoneId(m.id)}
+														/>
+													) : (
+														<Linkify
+															options={{
+																target: "_blank",
+																rel: "noopener noreferrer",
+																className: isUser
+																	? "underline underline-offset-2 hover:opacity-80"
+																	: "text-blue-600 underline underline-offset-2 hover:text-blue-700",
+															}}
+														>
+															{textPart.text}
+														</Linkify>
+													)}
 												</p>
 											);
 										})}
@@ -264,16 +303,8 @@ export function MessageList({
 						);
 					})}
 
-					{/* Bouncing dots — show when submitted OR streaming but no text yet */}
-					{(status === "submitted" ||
-						(status === "streaming" &&
-							!messages
-								.at(-1)
-								?.parts?.some(
-									(p) =>
-										p.type === "text" &&
-										(p as { type: "text"; text: string }).text.length > 0,
-								))) && (
+					{/* Bouncing dots — show while the AI is working (submitted + entire streaming duration) */}
+					{isStreaming && (
 						<div className="flex gap-3 justify-start">
 							<div className="shrink-0 w-7 h-7 rounded-lg bg-muted flex items-center justify-center mt-0.5">
 								<Bot className="w-4 h-4 text-muted-foreground" />
