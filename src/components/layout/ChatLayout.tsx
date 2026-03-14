@@ -39,7 +39,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import Link from "next/link";
 import ChatClient from "@/components/chat/ChatClient";
 import { TypedText } from "@/components/chat/TypedText";
 import { useLocale } from "@/components/providers/LocaleProvider";
@@ -210,8 +209,8 @@ function AppSidebar({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-48">
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/settings">{cl.settings}</Link>
+                <DropdownMenuItem className="cursor-pointer" onSelect={() => router.push("/settings")}>
+                  {cl.settings}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">

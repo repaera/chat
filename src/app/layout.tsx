@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { resolveUserLocale } from "@/lib/locale";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
+import { NavigationReset } from "@/components/providers/NavigationReset";
 import { appConfig } from "@/lib/app-config";
 import "./globals.css";
 
@@ -121,6 +122,7 @@ export default async function RootLayout({
       <body className={`${inter.variable} antialiased overscroll-none`}>
         <GtmNoScript />
         <NuqsAdapter>
+          <NavigationReset />
           <LocaleProvider t={resolved.ui} locale={resolved.locale}>
             {children}
             <Toaster position="top-center" richColors theme="light" />
