@@ -128,6 +128,10 @@ for arg in "$@"; do
 			echo "    PRESERVE_IMAGES        true | unset (default: unset)"
 			echo "                              Skip R2 object deletion on conversation delete/cleanup."
 			echo "                              Use when an MCP server stores R2 image URLs externally."
+			echo "    USE_PREBUILT              true (default) | false"
+			echo "                              Pull pre-built image from GHCR instead of building from source."
+			echo "    APP_IMAGE                 Image to pull (default: ghcr.io/repaera/chat:latest)"
+			echo "                              Pin a release: ghcr.io/repaera/chat:0.1.0"
 			echo "    GTM_ID                    Google Tag Manager ID (e.g. GTM-XXXXXX)"
 			echo "    LOCATION_MODE             v1 (default, browser geo) | v2 (Google Maps)"
 			echo "    GOOGLE_MAPS_PUB_KEY       NEXT_PUBLIC key for Places autocomplete (v2)"
@@ -416,6 +420,19 @@ collect_config_interactive() {
 	echo ""
 	info "Analytics — press Enter to skip"
 	ask_opt GTM_ID "Google Tag Manager ID (e.g. GTM-XXXXXX)"
+
+	echo ""
+	info "App image"
+	echo "  Pre-built: pulls ghcr.io/repaera/chat:latest from GHCR (faster, no build step)"
+	echo "  Build:     compiles from source on this server (slower, always fresh)"
+	read -rp "  Use pre-built GHCR image? [Y/n]: " prebuilt_choice </dev/tty
+	case "${prebuilt_choice,,}" in
+		n|no) USE_PREBUILT=false ;;
+		*) USE_PREBUILT=true ;;
+	esac
+	if [[ "$USE_PREBUILT" == "true" ]]; then
+		ask_opt APP_IMAGE "Image (press Enter for latest)" "ghcr.io/repaera/chat:latest"
+	fi
 }
 
 # ── Silent config ─────────────────────────────────────────────────────────────
@@ -511,6 +528,8 @@ collect_config_silent() {
 	APP_LOCALE="${APP_LOCALE:-}"
 	REDIS_URL="${REDIS_URL:-}"
 	PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
+	USE_PREBUILT="${USE_PREBUILT:-true}"
+	APP_IMAGE="${APP_IMAGE:-ghcr.io/repaera/chat:latest}"
 	# Analytics
 	GTM_ID="${GTM_ID:-}"
 
@@ -554,6 +573,11 @@ generate_secrets() {
 
 # ── Clone repo ────────────────────────────────────────────────────────────────
 clone_repo() {
+	if [[ "$USE_PREBUILT" == "true" ]]; then
+		mkdir -p "$INSTALL_DIR"
+		success "Install directory ready at $INSTALL_DIR"
+		return
+	fi
 	if [[ -d "$INSTALL_DIR/.git" ]]; then
 		warn "Directory $INSTALL_DIR already exists — pulling latest"
 		git -C "$INSTALL_DIR" pull --ff-only
@@ -864,6 +888,11 @@ services:
 EOF
 	fi
 
+	# When using pre-built GHCR image, replace build directive with image reference
+	if [[ "$USE_PREBUILT" == "true" ]]; then
+		sed -i "s|    build: \.|    image: ${APP_IMAGE}|g" "$INSTALL_DIR/docker-compose.yml"
+	fi
+
 	success "docker-compose.yml written"
 }
 
@@ -962,6 +991,12 @@ EOF
 # ── Build & start ─────────────────────────────────────────────────────────────
 build_app() {
 	cd "$INSTALL_DIR"
+	if [[ "$USE_PREBUILT" == "true" ]]; then
+		info "Pulling app image from GHCR (${APP_IMAGE})..."
+		docker compose pull app
+		success "App image pulled"
+		return
+	fi
 	if [[ "$VERBOSE" == "true" ]]; then
 		docker compose build app
 	else
@@ -1099,8 +1134,13 @@ print_summary() {
 	echo ""
 	echo -e "  ${BOLD}To update:${NC}"
 	echo -e "    cd ${INSTALL_DIR}"
+	if [[ "$USE_PREBUILT" == "true" ]]; then
+	echo -e "    docker compose pull app"
+	echo -e "    docker compose up -d app"
+	else
 	echo -e "    git pull"
 	echo -e "    docker compose up -d --build app"
+	fi
 	echo -e "    docker compose run --rm app npx prisma migrate deploy  # if schema changed"
 	echo ""
 	echo -e "  ${BOLD}Deploy Trigger.dev tasks${NC} (run from your local machine after code changes):"
