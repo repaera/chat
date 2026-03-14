@@ -820,7 +820,7 @@ RESEND_FROM=
 
 ```bash
 # 1. SSH to server and clone
-git clone https://github.com/your-org/chat.git /opt/chat
+git clone https://github.com/repaera/chat.git /opt/chat
 cd /opt/chat
 
 # 2. Fill in .env
