@@ -12,11 +12,17 @@ import en from "@/locales/en";
 import id from "@/locales/id";
 import kr from "@/locales/kr";
 import jp from "@/locales/jp";
+import es from "@/locales/es";
+import zh from "@/locales/zh";
+import de from "@/locales/de";
+import nl from "@/locales/nl";
+import fr from "@/locales/fr";
+import it from "@/locales/it";
 
 // Static map — the bundler needs to know which files may be imported.
 // Dynamic import with template literals cannot be tree-shaken by webpack/turbopack.
 // Add a new entry here whenever a new locale file is added.
-const LOCALE_MAP: Record<string, Locale> = { en, id, kr, jp };
+const LOCALE_MAP: Record<string, Locale> = { en, id, kr, jp, es, zh, de, nl, fr, it };
 
 // Map country code ISO 3166-1 alpha-2 → locale key
 // Add new entry if there is a new locale file in src/locales/
@@ -24,6 +30,38 @@ const COUNTRY_TO_LOCALE: Record<string, string> = {
   ID: "id", // Indonesia
   KR: "kr", // South Korea
   JP: "jp", // Japan
+  CN: "zh", // China
+  TW: "zh", // Taiwan
+  ES: "es", // Spain
+  MX: "es", // Mexico
+  AR: "es", // Argentina
+  CO: "es", // Colombia
+  CL: "es", // Chile
+  PE: "es", // Peru
+  VE: "es", // Venezuela
+  EC: "es", // Ecuador
+  BO: "es", // Bolivia
+  PY: "es", // Paraguay
+  UY: "es", // Uruguay
+  CR: "es", // Costa Rica
+  PA: "es", // Panama
+  HN: "es", // Honduras
+  DO: "es", // Dominican Republic
+  SV: "es", // El Salvador
+  NI: "es", // Nicaragua
+  GT: "es", // Guatemala
+  CU: "es", // Cuba
+  DE: "de", // Germany
+  AT: "de", // Austria
+  CH: "de", // Switzerland (German-speaking majority)
+  NL: "nl", // Netherlands
+  BE: "nl", // Belgium (Dutch-speaking majority)
+  FR: "fr", // France
+  LU: "fr", // Luxembourg
+  MC: "fr", // Monaco
+  IT: "it", // Italy
+  SM: "it", // San Marino
+  VA: "it", // Vatican City
   // US, GB, AU, CA, etc → no need to list, will fallback to "en"
 };
 
@@ -39,9 +77,14 @@ function parseAcceptLanguage(header: string | null): string | null {
   const langToLocale: Record<string, string> = {
     id: "id",
     ko: "kr",
-    ja: "jp", // already present
+    ja: "jp",
+    es: "es",
+    zh: "zh",
+    de: "de",
+    nl: "nl",
+    fr: "fr",
+    it: "it",
     en: "en",
-    // add other mappings as needed
   };
   return langToLocale[lang] ?? null;
 }

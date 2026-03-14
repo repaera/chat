@@ -132,6 +132,12 @@ export default {
           id: "Bahasa Indonesia",
           kr: "한국어 (Korean)",
           jp: "日本語 (Japanese)",
+          es: "Español (Spanish)",
+          zh: "中文 (Mandarin)",
+          de: "Deutsch (German)",
+          nl: "Nederlands (Dutch)",
+          fr: "Français (French)",
+          it: "Italiano (Italian)",
         },
       },
       securityCard: {

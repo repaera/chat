@@ -19,6 +19,12 @@ import en from "./en";
 import id from "./id";
 import kr from "./kr";
 import jp from "./jp";
+import es from "./es";
+import zh from "./zh";
+import de from "./de";
+import nl from "./nl";
+import fr from "./fr";
+import it from "./it";
 
 // Contract for all locale files — TypeScript error if a key is missing
 export type Locale = typeof en;
@@ -26,7 +32,7 @@ export type Locale = typeof en;
 // Specialized type for UI strings — used in LocaleProvider
 export type UILocale = Locale["ui"];
 
-const locales: Record<string, Locale> = { en, id, kr, jp };
+const locales: Record<string, Locale> = { en, id, kr, jp, es, zh, de, nl, fr, it };
 
 const activeLocale = (process.env.APP_LOCALE ?? "en").toLowerCase();
 
