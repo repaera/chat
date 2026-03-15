@@ -54,6 +54,7 @@ type Conversation = {
 type Props = {
   user: { name: string; email: string };
   activeConversationId: string | null;
+  sidebarDefaultOpen?: boolean;
 };
 
 // ── Skeleton rows shown while the first page is loading ───────────────────
@@ -121,14 +122,15 @@ function AppSidebar({
         {/* Header */}
         <SidebarHeader>
           <div className="flex items-center gap-2 px-0 py-3">
-            <img src={appConfig.iconSvg ?? "/icon.svg"} alt="" className="size-6" />
-            <span className="text-sm font-semibold text-sidebar-foreground">{appConfig.name}</span>
+            <img src={appConfig.iconSvg ?? "/icon.svg"} alt="" className="size-8" />
+            <span className="text-base font-semibold text-sidebar-foreground">{appConfig.name}</span>
+            <SidebarTrigger className="md:hidden ml-auto h-8 w-8 [&_svg]:size-5! text-neutral-600" />
           </div>
           <div className="px-2 pb-2">
             <Button
               variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground"
+              size="lg"
+              className="w-full justify-start gap-2 text-sm text-neutral-600 hover:text-sidebar-foreground"
               onClick={onNewChat}
             >
               <Plus className="w-4 h-4" />
@@ -160,7 +162,7 @@ function AppSidebar({
                           {conv.title ?? cl.untitledConversation}
                         </p>
                         {conv.preview && (
-                          <p className="w-full truncate text-sidebar-foreground/50">
+                          <p className="w-full truncate text-neutral-600">
                             {conv.preview}
                           </p>
                         )}
@@ -203,7 +205,7 @@ function AppSidebar({
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-sidebar-foreground">{user.name}</p>
-                    <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+                    <p className="truncate text-xs text-neutral-600">{user.email}</p>
                   </div>
                   <MoreHorizontal className="w-4 h-4 text-sidebar-foreground/40" />
                 </button>
@@ -249,7 +251,7 @@ function AppSidebar({
   );
 }
 
-export default function ChatLayout({ user, activeConversationId }: Props) {
+export default function ChatLayout({ user, activeConversationId, sidebarDefaultOpen = true }: Props) {
   const { t } = useLocale();
   const cl = t.chatLayout;
 
@@ -342,7 +344,7 @@ export default function ChatLayout({ user, activeConversationId }: Props) {
 
   return (
     <div className="flex h-svh overflow-hidden bg-background">
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider defaultOpen={sidebarDefaultOpen}>
         <AppSidebar
           user={user}
           conversations={conversations}
@@ -367,11 +369,11 @@ export default function ChatLayout({ user, activeConversationId }: Props) {
 
         <SidebarInset className="flex flex-col min-h-0 overflow-hidden">
           {/* Topbar — trigger + active title */}
-          <header className="flex h-12 md:h-14 shrink-0 items-center gap-2 px-3 z-10">
-            <SidebarTrigger className="h-7 w-7 md:h-9 md:w-9 md:[&_svg]:size-5!" />
-            <p className="truncate text-sm md:text-base font-medium text-muted-foreground flex-1 self-center">
+          <header className="flex h-14 md:h-14 shrink-0 items-center gap-2 px-3 z-10">
+            <SidebarTrigger className="h-9 w-9 [&_svg]:size-6! md:h-9 md:w-9 md:[&_svg]:size-5! text-neutral-600" />
+            <p className="truncate text-base md:text-base font-medium text-muted-foreground flex-1 self-center">
               {isLoadingConvos && currentId ? (
-                <span className="inline-block h-3 w-36 rounded bg-muted animate-pulse" />
+                <span className="inline-block h-4 w-40 md:h-3 md:w-36 rounded bg-muted animate-pulse" />
               ) : (
                 <TypedText
                   animate={justCreated}
@@ -386,9 +388,9 @@ export default function ChatLayout({ user, activeConversationId }: Props) {
               )}
             </p>
             {appConfig.helpCenterUrl && (
-              <Button variant="ghost" asChild className="shrink-0 h-8 w-8 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground self-center">
+              <Button variant="ghost" asChild className="shrink-0 h-9 w-9 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground self-center">
                 <a href={appConfig.helpCenterUrl} target="_blank" rel="noopener noreferrer" aria-label="Help center">
-                  <LifeBuoy className="size-4 md:size-5" />
+                  <LifeBuoy className="size-6 md:size-5" />
                   <span className="hidden md:inline text-sm md:text-base">Help</span>
                 </a>
               </Button>

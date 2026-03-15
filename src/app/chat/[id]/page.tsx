@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -26,8 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ConversationPage({ params }: Props) {
   const { id } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
+  const [session, cookieStore] = await Promise.all([
+    auth.api.getSession({ headers: await headers() }),
+    cookies(),
+  ]);
   if (!session?.user) redirect("/login");
+
+  const sidebarDefaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
 
   // Single query with select only — do not mix include + select at different levels
   // (Prisma does not allow include and select at the same level)
@@ -42,6 +47,7 @@ export default async function ConversationPage({ params }: Props) {
     <ChatLayout
       user={{ name: session.user.name ?? "User", email: session.user.email }}
       activeConversationId={id}
+      sidebarDefaultOpen={sidebarDefaultOpen}
     />
   );
 }
