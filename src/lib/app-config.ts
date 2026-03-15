@@ -8,7 +8,7 @@ export const appConfig = {
   // ── Identity ────────────────────────────────────────────────────
   name:        process.env.NEXT_PUBLIC_APP_NAME        ?? "Chat",
   shortName:   process.env.NEXT_PUBLIC_APP_SHORT_NAME  ?? "Chat",
-  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? "conversational interface for MCP",
+  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? "Your personal AI assistant",
   url:         process.env.NEXT_PUBLIC_APP_URL          ?? "http://localhost:3000",
 
   // ── Branding ────────────────────────────────────────────────────

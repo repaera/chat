@@ -341,6 +341,17 @@ collect_config_interactive() {
 	ask     R2_PUBLIC_URL        "Public URL (e.g. https://assets.yourdomain.com)"
 
 	echo ""
+	info "PRESERVE_IMAGES — optional"
+	echo "  Set to true if an MCP server stores R2 image URLs from this app."
+	echo "  When enabled, images are NOT deleted when conversations are removed."
+	read -rp "  Enable PRESERVE_IMAGES? [y/N]: " preserve_choice </dev/tty
+	if [[ "${preserve_choice,,}" == "y" ]]; then
+		PRESERVE_IMAGES=true
+	else
+		PRESERVE_IMAGES=""
+	fi
+
+	echo ""
 	info "Trigger.dev — background jobs"
 	ask_sec TRIGGER_SECRET_KEY "Secret key (tr_live_...)"
 
@@ -438,7 +449,6 @@ collect_config_interactive() {
 # ── Silent config ─────────────────────────────────────────────────────────────
 collect_config_silent() {
 	: "${DOMAIN:?DOMAIN is required}"
-	: "${SSL_EMAIL:?SSL_EMAIL is required}"
 	: "${LLM_PROVIDER:?LLM_PROVIDER is required}"
 	: "${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}"
 	: "${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}"
@@ -505,7 +515,9 @@ collect_config_silent() {
 	MCP_JWT_SECRET="${MCP_JWT_SECRET:-}"
 
 	CLOUDFLARE_PROXY="${CLOUDFLARE_PROXY:-false}"
-	[[ "$CLOUDFLARE_PROXY" == "false" ]] && : "${SSL_EMAIL:?SSL_EMAIL is required when CLOUDFLARE_PROXY is not true}"
+	if [[ "$CLOUDFLARE_PROXY" == "false" ]]; then
+		: "${SSL_EMAIL:?SSL_EMAIL is required when CLOUDFLARE_PROXY is not true}"
+	fi
 
 	# Branding
 	APP_SHORT_NAME="${APP_SHORT_NAME:-}"
@@ -735,6 +747,8 @@ ${APP_HELP_URL:+NEXT_PUBLIC_APP_HELP_URL=${APP_HELP_URL}}
 
 # ── Locale ────────────────────────────────────────────────────────────────────
 ${APP_LOCALE:+APP_LOCALE=${APP_LOCALE}}
+
+# ── Redis ─────────────────────────────────────────────────────────────────────
 ${REDIS_URL:+REDIS_URL=${REDIS_URL}}
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
