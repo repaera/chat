@@ -37,11 +37,12 @@ export async function generateMetadata(): Promise<Metadata> {
     manifest: "/manifest.webmanifest",
 
     // ── Icons ──────────────────────────────────────────────────────
+    // Env vars override with CDN URLs; falls back to public/ files.
     icons: {
       shortcut: appConfig.favicon ?? "/favicon.ico",
       icon: [
-        ...(appConfig.iconSvg  ? [{ url: appConfig.iconSvg,  type: "image/svg+xml" }] : []),
-        ...(appConfig.icon192  ? [{ url: appConfig.icon192,  type: "image/png", sizes: "192x192" }] : []),
+        ...(appConfig.iconSvg  ? [{ url: appConfig.iconSvg,  type: "image/svg+xml" }]            : [{ url: "/icon.svg",     type: "image/svg+xml" }]),
+        ...(appConfig.icon192  ? [{ url: appConfig.icon192,  type: "image/png", sizes: "192x192" }] : [{ url: "/icon-192.png", type: "image/png", sizes: "192x192" }]),
       ],
       apple: appConfig.appleTouchIcon ?? "/apple-touch-icon.png",
     },
