@@ -14,6 +14,7 @@ import { LocationDialog } from "@/components/chat/LocationDialog";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput, type PendingImage } from "@/components/chat/ChatInput";
 import type { LocationPart, CommutePart, LocationAttachment } from "@/components/chat/location-types";
+import { ArrowDown } from "lucide-react";
 
 type Props = {
 	activeConversationId: string | null;
@@ -49,6 +50,9 @@ export default function ChatClient({
 	const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
 	const [locationDialogOpen, setLocationDialogOpen] = useState(false);
 	const [pendingLocation, setPendingLocation] = useState<LocationAttachment | null>(null);
+	const [isNearBottom, setIsNearBottom] = useState(true);
+	const isNearBottomRef = useRef(true);
+	const [hasUnread, setHasUnread] = useState(false);
 
 	// Heartbeat every 15 minutes — prevent cleanup job from deleting images that are still pending
 	useImageHeartbeat(pendingImage?.imageId ?? null);
@@ -259,10 +263,27 @@ export default function ChatClient({
 		return () => observer.disconnect();
 	}, [loadMoreMessages]);
 
-	// Auto-scroll to bottom — only for NEW messages, not during initial load
+	// Track whether user is near the bottom of the scroll container
+	useEffect(() => {
+		const container = scrollContainerRef.current;
+		if (!container) return;
+		const onScroll = () => {
+			const { scrollTop, scrollHeight, clientHeight } = container;
+			const dist = scrollHeight - scrollTop - clientHeight;
+			const near = dist < 300;
+			isNearBottomRef.current = near;
+			setIsNearBottom(near);
+			if (near) setHasUnread(false);
+		};
+		container.addEventListener("scroll", onScroll, { passive: true });
+		return () => container.removeEventListener("scroll", onScroll);
+	}, []);
+
+	// Auto-scroll to bottom — follows the cursor during streaming, respects user scroll position
 	useEffect(() => {
 		const currentLastMessage = messages[messages.length - 1];
 
+		// First render after mount/conversation switch — instant jump to bottom
 		if (!isMountedRef.current) {
 			isMountedRef.current = true;
 			lastMessageIdRef.current = currentLastMessage?.id ?? null;
@@ -270,10 +291,28 @@ export default function ChatClient({
 			return;
 		}
 
-		const isNewMessageAtBottom = currentLastMessage?.id !== lastMessageIdRef.current;
-		if (isNewMessageAtBottom || status === "streaming" || status === "submitted") {
-			bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+		const isNewMessage = currentLastMessage?.id !== lastMessageIdRef.current;
+
+		if (isNewMessage) {
 			lastMessageIdRef.current = currentLastMessage?.id ?? null;
+			if (currentLastMessage?.role === "user") {
+				// User just sent — always scroll so they see their own message
+				bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+				return;
+			}
+			// New assistant message arrived
+			if (isNearBottomRef.current) {
+				bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+			} else {
+				setHasUnread(true);
+			}
+			return;
+		}
+
+		// Same message, content updated (streaming tokens) — follow cursor only if near bottom
+		if (status === "streaming" && isNearBottomRef.current) {
+			const container = scrollContainerRef.current;
+			if (container) container.scrollTop = container.scrollHeight;
 		}
 	}, [messages, status]);
 
@@ -347,33 +386,56 @@ export default function ChatClient({
 		);
 	};
 
+	const scrollToBottom = () => {
+		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+		setHasUnread(false);
+	};
+
 	const isEmpty = !isInitialLoading && messages.length === 0;
 
 	// ── Render ────────────────────────────────────────────────────────────────
 
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
-			<MessageList
-				messages={messages}
-				status={status}
-				isInitialLoading={isInitialLoading}
-				isLoadingMore={isLoadingMore}
-				isEmpty={isEmpty}
-				scrollContainerRef={scrollContainerRef}
-				topRef={topRef}
-				bottomRef={bottomRef}
-				onSuggestionClick={(s) => {
-					doSend(s);
-					setInput("");
-				}}
-				cc={{
-					loadingMore: cc.loadingMore,
-					emptyHint: cc.emptyHint,
-					suggestions: cc.suggestions,
-					toolCalling: cc.toolCalling,
-					toolDone: cc.toolDone,
-				}}
-			/>
+			{/* Wrapper scopes the button's absolute positioning to the message area only */}
+			<div className="relative flex-1 min-h-0 flex flex-col">
+				<MessageList
+					messages={messages}
+					status={status}
+					isInitialLoading={isInitialLoading}
+					isLoadingMore={isLoadingMore}
+					isEmpty={isEmpty}
+					scrollContainerRef={scrollContainerRef}
+					topRef={topRef}
+					bottomRef={bottomRef}
+					onSuggestionClick={(s) => {
+						doSend(s);
+						setInput("");
+					}}
+					cc={{
+						loadingMore: cc.loadingMore,
+						emptyHint: cc.emptyHint,
+						suggestions: cc.suggestions,
+						toolCalling: cc.toolCalling,
+						toolDone: cc.toolDone,
+					}}
+				/>
+
+				{/* Scroll-to-bottom button — fades in when user scrolls away from bottom */}
+				<div className={`absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none z-10 transition-opacity duration-200 ${isNearBottom ? "opacity-0" : "opacity-100"}`}>
+					<button
+						onClick={scrollToBottom}
+						aria-label="Scroll to bottom"
+						className={`pointer-events-auto relative h-8 w-8 rounded-full bg-background border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors ${isNearBottom ? "pointer-events-none" : ""}`}
+					>
+						<ArrowDown className="h-4 w-4" />
+						{hasUnread && (
+							<span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
+						)}
+					</button>
+				</div>
+			</div>
+
 			<ChatInput
 				input={input}
 				setInput={setInput}
