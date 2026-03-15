@@ -90,8 +90,9 @@ NEXT_PUBLIC_APP_BG_COLOR="#ffffff"                 # PWA splash screen backgroun
 
 # ── Icons & OG (optional — falls back to public/ files if not set) ──
 # All values accept absolute URLs or relative paths (e.g. /icon.png)
+# APP_ICON_SVG_URL also drives the in-app logo (sidebar header, auth pages)
 APP_FAVICON_URL=/favicon.ico
-APP_ICON_SVG_URL=/icon.svg
+APP_ICON_SVG_URL=/icon.svg                         # also used as in-app logo
 APP_ICON_192_URL=/icon-192.png
 APP_ICON_512_URL=/icon-512.png
 APP_APPLE_TOUCH_ICON_URL=/apple-touch-icon.png     # 180×180 PNG

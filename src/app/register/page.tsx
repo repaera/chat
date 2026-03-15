@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { Bot } from "lucide-react";
+import { appConfig } from "@/lib/app-config";
 
 // ─── Icons ────────────────────────────────────────────────────
 
@@ -179,8 +179,8 @@ function RegisterForm() {
 
         {/* Logo + heading */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-muted">
-            <Bot className="w-6 h-6 text-muted-foreground" />
+          <div className="inline-flex items-center justify-center size-12">
+            <img src={appConfig.iconSvg ?? "/icon.svg"} alt="" className="size-12" />
           </div>
           <h1 className="text-xl font-semibold">{r.pageTitle}</h1>
           <p className="text-sm text-muted-foreground">{r.pageSubtitle}</p>

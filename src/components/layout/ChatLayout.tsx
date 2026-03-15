@@ -42,7 +42,7 @@ import { toast } from "sonner";
 import ChatClient from "@/components/chat/ChatClient";
 import { TypedText } from "@/components/chat/TypedText";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { Bot, X, MoreHorizontal, Plus, LifeBuoy } from "lucide-react";
+import { X, MoreHorizontal, Plus, LifeBuoy } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -121,7 +121,7 @@ function AppSidebar({
         {/* Header */}
         <SidebarHeader>
           <div className="flex items-center gap-2 px-0 py-3">
-            <Bot className="w-4 h-4" />
+            <img src={appConfig.iconSvg ?? "/icon.svg"} alt="" className="size-6" />
             <span className="text-sm font-semibold text-sidebar-foreground">{appConfig.name}</span>
           </div>
           <div className="px-2 pb-2">
