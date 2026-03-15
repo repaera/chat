@@ -100,6 +100,12 @@ export default async function RootLayout({
     id: "id",
     kr: "ko",
     jp: "ja",
+    es: "es",
+    zh: "zh-CN",
+    de: "de",
+    nl: "nl",
+    fr: "fr",
+    it: "it",
   };
   const mapsLang = LOCALE_TO_MAPS_LANG[resolved.locale] ?? "en";
 
