@@ -38,10 +38,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
     // ── Icons ──────────────────────────────────────────────────────
     icons: {
-      ...(appConfig.favicon       && { shortcut: appConfig.favicon }),
-      ...(appConfig.iconSvg       && { icon: [{ url: appConfig.iconSvg, type: "image/svg+xml" }] }),
-      ...(appConfig.icon192       && { icon: [{ url: appConfig.icon192, sizes: "192x192", type: "image/png" }] }),
-      ...(appConfig.appleTouchIcon && { apple: appConfig.appleTouchIcon }),
+      shortcut: appConfig.favicon ?? "/favicon.ico",
+      icon: (() => {
+        const icons: { url: string; type: string; sizes?: string }[] = [];
+        if (appConfig.iconSvg)  icons.push({ url: appConfig.iconSvg,  type: "image/svg+xml" });
+        if (appConfig.icon192)  icons.push({ url: appConfig.icon192,  type: "image/png", sizes: "192x192" });
+        if (icons.length === 0) {
+          icons.push({ url: "/icon.svg",    type: "image/svg+xml" });
+          icons.push({ url: "/icon-192.png", type: "image/png", sizes: "192x192" });
+        }
+        return icons;
+      })(),
+      apple: appConfig.appleTouchIcon ?? "/apple-touch-icon.png",
     },
 
     // ── Open Graph ─────────────────────────────────────────────────
