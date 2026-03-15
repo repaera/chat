@@ -263,6 +263,20 @@ export default function ChatClient({
 		return () => observer.disconnect();
 	}, [loadMoreMessages]);
 
+	// ResizeObserver — auto-scroll during TypedText animation (Typed.js bypasses React state)
+	useEffect(() => {
+		const container = scrollContainerRef.current;
+		if (!container) return;
+		const observer = new ResizeObserver(() => {
+			if (isNearBottomRef.current) {
+				container.scrollTop = container.scrollHeight;
+			}
+		});
+		const inner = container.firstElementChild;
+		if (inner) observer.observe(inner);
+		return () => observer.disconnect();
+	}, []);
+
 	// Track whether user is near the bottom of the scroll container
 	useEffect(() => {
 		const container = scrollContainerRef.current;
