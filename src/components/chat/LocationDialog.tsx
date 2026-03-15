@@ -1,7 +1,7 @@
 // src/components/chat/LocationDialog.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useReducer, useEffect } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -26,6 +26,60 @@ type Props = {
 	onConfirmLocation: (part: LocationPart) => void;
 	onConfirmCommute: (part: CommutePart) => void;
 };
+
+type PlaceField = {
+	query: string;
+	selected: Suggestion | null;
+	coords: { lat: number; lng: number } | null;
+};
+
+type DialogState = {
+	mode: Mode;
+	confirming: boolean;
+	calcError: string | null;
+	loc: PlaceField;
+	origin: PlaceField;
+	dest: PlaceField;
+};
+
+type DialogAction =
+	| { type: "SET_MODE"; mode: Mode }
+	| { type: "SET_CONFIRMING"; value: boolean }
+	| { type: "SET_CALC_ERROR"; error: string | null }
+	| { type: "UPDATE_LOC"; patch: Partial<PlaceField> }
+	| { type: "UPDATE_ORIGIN"; patch: Partial<PlaceField> }
+	| { type: "UPDATE_DEST"; patch: Partial<PlaceField> }
+	| { type: "RESET" };
+
+const EMPTY_PLACE: PlaceField = { query: "", selected: null, coords: null };
+
+const INITIAL_STATE: DialogState = {
+	mode: "menu",
+	confirming: false,
+	calcError: null,
+	loc: EMPTY_PLACE,
+	origin: EMPTY_PLACE,
+	dest: EMPTY_PLACE,
+};
+
+function dialogReducer(state: DialogState, action: DialogAction): DialogState {
+	switch (action.type) {
+		case "SET_MODE":
+			return { ...state, mode: action.mode };
+		case "SET_CONFIRMING":
+			return { ...state, confirming: action.value };
+		case "SET_CALC_ERROR":
+			return { ...state, calcError: action.error };
+		case "UPDATE_LOC":
+			return { ...state, loc: { ...state.loc, ...action.patch } };
+		case "UPDATE_ORIGIN":
+			return { ...state, origin: { ...state.origin, ...action.patch } };
+		case "UPDATE_DEST":
+			return { ...state, dest: { ...state.dest, ...action.patch } };
+		case "RESET":
+			return INITIAL_STATE;
+	}
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -70,22 +124,8 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 	const { t } = useLocale();
 	const ld = t.chatClient.locationDialog;
 
-	const [mode, setMode] = useState<Mode>("menu");
-	const [confirming, setConfirming] = useState(false);
-	const [calcError, setCalcError] = useState<string | null>(null);
-
-	// Location mode state
-	const [locQuery, setLocQuery] = useState("");
-	const [locSelected, setLocSelected] = useState<Suggestion | null>(null);
-	const [locCoords, setLocCoords] = useState<{ lat: number; lng: number } | null>(null);
-
-	// Commute mode state
-	const [originQuery, setOriginQuery] = useState("");
-	const [destQuery, setDestQuery] = useState("");
-	const [originSelected, setOriginSel] = useState<Suggestion | null>(null);
-	const [destSelected, setDestSel] = useState<Suggestion | null>(null);
-	const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
-	const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null);
+	const [state, dispatch] = useReducer(dialogReducer, INITIAL_STATE);
+	const { mode, confirming, calcError, loc, origin, dest } = state;
 
 	const locAC = usePlaceAutocomplete();
 	const originAC = usePlaceAutocomplete();
@@ -95,76 +135,64 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 	useEffect(() => {
 		if (!open) {
 			setTimeout(() => {
-				setMode("menu");
-				setLocQuery("");
-				setLocSelected(null);
-				setLocCoords(null);
+				dispatch({ type: "RESET" });
 				locAC.clear();
-				setOriginQuery("");
-				setDestQuery("");
-				setOriginSel(null);
-				setDestSel(null);
-				setOriginCoords(null);
-				setDestCoords(null);
 				originAC.clear();
 				destAC.clear();
-				setCalcError(null);
-				setConfirming(false);
 			}, 200);
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open]);
 
 	// ── Confirm Location ─────────────────────────────────────────────────────
 	const handleConfirmLocation = async () => {
-		if (!locSelected) return;
-		setConfirming(true);
+		if (!loc.selected) return;
+		dispatch({ type: "SET_CONFIRMING", value: true });
 		try {
-			const coords = locCoords ?? (await resolvePlaceLatLng(locSelected.placeId));
+			const coords = loc.coords ?? (await resolvePlaceLatLng(loc.selected.placeId));
 			onConfirmLocation({
 				type: "location",
 				lat: coords.lat,
 				lng: coords.lng,
-				label: locSelected.label,
-				placeId: locSelected.placeId,
+				label: loc.selected.label,
+				placeId: loc.selected.placeId,
 			});
 			onClose();
 		} catch {
-			setCalcError(ld.calcFailed);
+			dispatch({ type: "SET_CALC_ERROR", error: ld.calcFailed });
 		} finally {
-			setConfirming(false);
+			dispatch({ type: "SET_CONFIRMING", value: false });
 		}
 	};
 
 	// ── Confirm Commute ──────────────────────────────────────────────────────
 	const handleConfirmCommute = async () => {
-		if (!originSelected || !destSelected) return;
-		setConfirming(true);
-		setCalcError(null);
+		if (!origin.selected || !dest.selected) return;
+		dispatch({ type: "SET_CONFIRMING", value: true });
+		dispatch({ type: "SET_CALC_ERROR", error: null });
 		try {
 			const [oCoords, dCoords] = await Promise.all([
-				originCoords ?? resolvePlaceLatLng(originSelected.placeId),
-				destCoords ?? resolvePlaceLatLng(destSelected.placeId),
+				origin.coords ?? resolvePlaceLatLng(origin.selected.placeId),
+				dest.coords ?? resolvePlaceLatLng(dest.selected.placeId),
 			]);
 
-			const origin: LocationPlace = {
+			const originPlace: LocationPlace = {
 				...oCoords,
-				label: originSelected.label,
-				placeId: originSelected.placeId,
+				label: origin.selected.label,
+				placeId: origin.selected.placeId,
 			};
-			const destination: LocationPlace = {
+			const destinationPlace: LocationPlace = {
 				...dCoords,
-				label: destSelected.label,
-				placeId: destSelected.placeId,
+				label: dest.selected.label,
+				placeId: dest.selected.placeId,
 			};
 
-			const { distanceKm, durationMin } = await fetchDistanceMatrix(origin, destination);
-			onConfirmCommute({ type: "commute", origin, destination, distanceKm, durationMin });
+			const { distanceKm, durationMin } = await fetchDistanceMatrix(originPlace, destinationPlace);
+			onConfirmCommute({ type: "commute", origin: originPlace, destination: destinationPlace, distanceKm, durationMin });
 			onClose();
 		} catch {
-			setCalcError(ld.calcFailed);
+			dispatch({ type: "SET_CALC_ERROR", error: ld.calcFailed });
 		} finally {
-			setConfirming(false);
+			dispatch({ type: "SET_CONFIRMING", value: false });
 		}
 	};
 
@@ -181,7 +209,7 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 						<Button
 							variant="outline"
 							className="h-12 justify-start gap-3 text-sm font-medium"
-							onClick={() => setMode("location")}
+							onClick={() => dispatch({ type: "SET_MODE", mode: "location" })}
 						>
 							<MapPin className="w-5 h-5 text-neutral-500" />
 							{ld.shareLocationBtn}
@@ -189,7 +217,7 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 						<Button
 							variant="outline"
 							className="h-12 justify-start gap-3 text-sm font-medium"
-							onClick={() => setMode("commute")}
+							onClick={() => dispatch({ type: "SET_MODE", mode: "commute" })}
 						>
 							<ArrowRightLeft className="w-5 h-5 text-neutral-500" />
 							{ld.commuteBtn}
@@ -202,27 +230,20 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 					<div className="flex flex-col gap-3 pt-2 w-full min-w-0">
 						<PlaceSearchField
 							placeholder={ld.searchPlaceholder}
-							value={locQuery}
+							value={loc.query}
 							onChange={(v) => {
-								setLocQuery(v);
+								dispatch({ type: "UPDATE_LOC", patch: { query: v, coords: null } });
 								locAC.search(v);
-								setLocCoords(null);
 							}}
 							onSelect={(s) => {
-								setLocSelected(s);
-								setLocQuery(s.label);
+								dispatch({ type: "UPDATE_LOC", patch: { selected: s, query: s.label } });
 								locAC.clear();
-								// Resolve coordinates immediately on select for map preview
 								resolvePlaceLatLng(s.placeId)
-									.then((c) => setLocCoords(c))
+									.then((c) => dispatch({ type: "UPDATE_LOC", patch: { coords: c } }))
 									.catch(() => {});
 							}}
-							selected={locSelected}
-							onClear={() => {
-								setLocSelected(null);
-								setLocQuery("");
-								setLocCoords(null);
-							}}
+							selected={loc.selected}
+							onClear={() => dispatch({ type: "UPDATE_LOC", patch: EMPTY_PLACE })}
 							loading={locAC.loading}
 							suggestions={locAC.suggestions}
 							noResultsLabel={ld.noResults}
@@ -232,7 +253,7 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 						{calcError && <p className="text-xs text-red-500">{calcError}</p>}
 						<Button
 							onClick={handleConfirmLocation}
-							disabled={!locSelected || confirming}
+							disabled={!loc.selected || confirming}
 							className="w-full"
 						>
 							{confirming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -246,26 +267,20 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 					<div className="flex flex-col gap-3 pt-2 w-full min-w-0">
 						<PlaceSearchField
 							placeholder={ld.originPlaceholder}
-							value={originQuery}
+							value={origin.query}
 							onChange={(v) => {
-								setOriginQuery(v);
+								dispatch({ type: "UPDATE_ORIGIN", patch: { query: v, coords: null } });
 								originAC.search(v);
-								setOriginCoords(null);
 							}}
 							onSelect={(s) => {
-								setOriginSel(s);
-								setOriginQuery(s.label);
+								dispatch({ type: "UPDATE_ORIGIN", patch: { selected: s, query: s.label } });
 								originAC.clear();
 								resolvePlaceLatLng(s.placeId)
-									.then((c) => setOriginCoords(c))
+									.then((c) => dispatch({ type: "UPDATE_ORIGIN", patch: { coords: c } }))
 									.catch(() => {});
 							}}
-							selected={originSelected}
-							onClear={() => {
-								setOriginSel(null);
-								setOriginQuery("");
-								setOriginCoords(null);
-							}}
+							selected={origin.selected}
+							onClear={() => dispatch({ type: "UPDATE_ORIGIN", patch: EMPTY_PLACE })}
 							loading={originAC.loading}
 							suggestions={originAC.suggestions}
 							noResultsLabel={ld.noResults}
@@ -273,26 +288,20 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 						/>
 						<PlaceSearchField
 							placeholder={ld.destinationPlaceholder}
-							value={destQuery}
+							value={dest.query}
 							onChange={(v) => {
-								setDestQuery(v);
+								dispatch({ type: "UPDATE_DEST", patch: { query: v, coords: null } });
 								destAC.search(v);
-								setDestCoords(null);
 							}}
 							onSelect={(s) => {
-								setDestSel(s);
-								setDestQuery(s.label);
+								dispatch({ type: "UPDATE_DEST", patch: { selected: s, query: s.label } });
 								destAC.clear();
 								resolvePlaceLatLng(s.placeId)
-									.then((c) => setDestCoords(c))
+									.then((c) => dispatch({ type: "UPDATE_DEST", patch: { coords: c } }))
 									.catch(() => {});
 							}}
-							selected={destSelected}
-							onClear={() => {
-								setDestSel(null);
-								setDestQuery("");
-								setDestCoords(null);
-							}}
+							selected={dest.selected}
+							onClear={() => dispatch({ type: "UPDATE_DEST", patch: EMPTY_PLACE })}
 							loading={destAC.loading}
 							suggestions={destAC.suggestions}
 							noResultsLabel={ld.noResults}
@@ -302,7 +311,7 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 						{calcError && <p className="text-xs text-red-500">{calcError}</p>}
 						<Button
 							onClick={handleConfirmCommute}
-							disabled={!originSelected || !destSelected || confirming}
+							disabled={!origin.selected || !dest.selected || confirming}
 							className="w-full"
 						>
 							{confirming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}

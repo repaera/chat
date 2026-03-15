@@ -42,38 +42,35 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
   const [email, setEmail] = useState(user.email);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
+  const [saving, setSaving] = useState<null | "profile" | "email" | "locale" | "password">(null);
   const [emailSent, setEmailSent] = useState(false);
   const [locale, setLocale] = useState(user.locale ?? "");
-  const [savingLocale, setSavingLocale] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
 
   const handleSaveProfile = async () => {
-    setSavingProfile(true);
+    setSaving("profile");
     try {
       await authClient.updateUser({ name });
       toast.success(s.toasts.profileSaved);
     } catch {
       toast.error(s.toasts.profileError);
-    } finally { setSavingProfile(false); }
+    } finally { setSaving(null); }
   };
 
   const handleChangeEmail = async () => {
     if (email === user.email) return;
-    setSavingEmail(true);
+    setSaving("email");
     try {
       await authClient.changeEmail({ newEmail: email, callbackURL: "/settings" });
       setEmailSent(true);
       toast.success(s.profileCard.emailSent);
     } catch {
       toast.error(s.toasts.profileError);
-    } finally { setSavingEmail(false); }
+    } finally { setSaving(null); }
   };
 
   const handleSaveLocale = async (value: string) => {
     setLocale(value);
-    setSavingLocale(true);
+    setSaving("locale");
     try {
       await authClient.updateUser({ locale: value } as Parameters<typeof authClient.updateUser>[0]);
       // router.refresh() triggers server re-render of layout.tsx —
@@ -81,19 +78,19 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
       router.refresh();
     } catch {
       toast.error(s.toasts.localeError);
-    } finally { setSavingLocale(false); }
+    } finally { setSaving(null); }
   };
 
   const handleChangePassword = async () => {
     if (newPassword.length < 8) { toast.error(s.securityCard.errors.tooShort); return; }
-    setSavingPassword(true);
+    setSaving("password");
     try {
       await authClient.changePassword({ currentPassword, newPassword });
       toast.success(s.securityCard.success);
       setCurrentPassword(""); setNewPassword("");
     } catch {
       toast.error(s.securityCard.errors.wrongPassword);
-    } finally { setSavingPassword(false); }
+    } finally { setSaving(null); }
   };
 
   const handleDeleteAccount = async () => {
@@ -169,8 +166,8 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
                 <Label>{s.profileCard.nameLabel}</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
               </div>
-              <Button onClick={handleSaveProfile} disabled={savingProfile || name === user.name}>
-                {savingProfile ? t.common.saving : s.profileCard.saveNameButton}
+              <Button onClick={handleSaveProfile} disabled={saving === "profile" || name === user.name}>
+                {saving === "profile" ? t.common.saving : s.profileCard.saveNameButton}
               </Button>
             </div>
 
@@ -182,11 +179,11 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
                 <div className="space-y-3 max-w-sm">
                   <div className="space-y-1.5">
                     <Label>{s.profileCard.emailLabel}</Label>
-                    <Input value={email} onChange={(e) => { setEmail(e.target.value); setEmailSent(false); }} disabled={savingEmail} />
+                    <Input value={email} onChange={(e) => { setEmail(e.target.value); setEmailSent(false); }} disabled={saving === "email"} />
                     {emailSent && <p className="text-xs text-emerald-600">{s.profileCard.emailSent}</p>}
                   </div>
-                  <Button onClick={handleChangeEmail} disabled={savingEmail || email === user.email || emailSent} variant="outline">
-                    {savingEmail ? s.profileCard.changingEmail : s.profileCard.changeEmailButton}
+                  <Button onClick={handleChangeEmail} disabled={saving === "email" || email === user.email || emailSent} variant="outline">
+                    {saving === "email" ? s.profileCard.changingEmail : s.profileCard.changeEmailButton}
                   </Button>
                 </div>
               </>
@@ -201,7 +198,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
                 <Select
                   value={locale || "__auto__"}
                   onValueChange={(v) => handleSaveLocale(v === "__auto__" ? "" : v)}
-                  disabled={savingLocale}
+                  disabled={saving === "locale"}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue />
@@ -213,7 +210,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
                     ))}
                   </SelectContent>
                 </Select>
-                {savingLocale && <span className="text-xs text-muted-foreground shrink-0">{t.common.saving}</span>}
+                {saving === "locale" && <span className="text-xs text-muted-foreground shrink-0">{t.common.saving}</span>}
               </div>
               <p className="text-xs text-muted-foreground">{s.profileCard.localeHint}</p>
             </div>
@@ -239,8 +236,8 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
                 <Label>{s.securityCard.newPasswordLabel}</Label>
                 <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
               </div>
-              <Button onClick={handleChangePassword} disabled={savingPassword || !currentPassword || !newPassword}>
-                {savingPassword ? s.securityCard.submittingButton : s.securityCard.submitButton}
+              <Button onClick={handleChangePassword} disabled={saving === "password" || !currentPassword || !newPassword}>
+                {saving === "password" ? s.securityCard.submittingButton : s.securityCard.submitButton}
               </Button>
             </div>
           </div>

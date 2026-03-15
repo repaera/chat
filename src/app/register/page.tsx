@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signUp, signIn } from "@/lib/auth-client";
@@ -99,45 +102,42 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "/";
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const schema = z.object({
+    name: z.string().min(1, r.errors.nameRequired).min(2, r.errors.nameTooShort),
+    email: z.string().min(1, r.errors.emailRequired).pipe(z.email(r.errors.emailInvalid)),
+    password: z
+      .string()
+      .min(1, r.errors.passwordRequired)
+      .min(8, r.errors.passwordTooShort)
+      .refine((pw) => getPasswordScore(pw) >= 2, r.errors.passwordTooWeak),
+    confirmPassword: z.string().min(1, r.errors.confirmRequired),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: r.errors.confirmMismatch,
+    path: ["confirmPassword"],
+  });
+  type FormValues = z.infer<typeof schema>;
+
+  const { register, handleSubmit, formState: { errors }, watch, setError } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: "onTouched",
+  });
+
+  const password = watch("password", "");
+  const confirmPassword = watch("confirmPassword", "");
+  const score = getPasswordScore(password);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingOAuth, setLoadingOAuth] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{
-    name?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
 
-  const validate = () => {
-    const errors: typeof fieldErrors = {};
-    if (!name.trim()) errors.name = r.errors.nameRequired;
-    else if (name.trim().length < 2) errors.name = r.errors.nameTooShort;
-    if (!email) errors.email = r.errors.emailRequired;
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = r.errors.emailInvalid;
-    if (!password) errors.password = r.errors.passwordRequired;
-    else if (password.length < 8) errors.password = r.errors.passwordTooShort;
-    else if (getPasswordScore(password) < 2) errors.password = r.errors.passwordTooWeak;
-    if (!confirmPassword) errors.confirmPassword = r.errors.confirmRequired;
-    else if (confirmPassword !== password) errors.confirmPassword = r.errors.confirmMismatch;
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const onSubmit = async (data: FormValues) => {
     setLoading(true);
     try {
-      const result = await signUp.email({ name: name.trim(), email, password });
+      const result = await signUp.email({ name: data.name.trim(), email: data.email, password: data.password });
       if (result.error) {
         if (result.error.code === "USER_ALREADY_EXISTS") {
-          setFieldErrors((p) => ({ ...p, email: r.errors.emailTaken }));
+          setError("email", { message: r.errors.emailTaken });
         } else {
           toast.error(r.errors.genericError);
         }
@@ -171,7 +171,6 @@ function RegisterForm() {
 
   const isGoogleEnabled = !!process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED;
   const busy = loading || loadingOAuth;
-  const score = getPasswordScore(password);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -224,7 +223,7 @@ function RegisterForm() {
               </>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
 
               {/* Name */}
               <div className="space-y-1.5">
@@ -232,16 +231,15 @@ function RegisterForm() {
                 <Input
                   id="name"
                   type="text"
-                  value={name}
-                  onChange={(e) => { setName(e.target.value); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }}
+                  {...register("name")}
                   placeholder={r.namePlaceholder}
                   autoComplete="name"
                   autoFocus
                   disabled={busy}
-                  aria-invalid={!!fieldErrors.name}
-                  className={fieldErrors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  aria-invalid={!!errors.name}
+                  className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {fieldErrors.name && <p role="alert" className="text-xs text-red-500">{fieldErrors.name}</p>}
+                {errors.name && <p role="alert" className="text-xs text-red-500">{errors.name.message}</p>}
               </div>
 
               {/* Email */}
@@ -250,15 +248,14 @@ function RegisterForm() {
                 <Input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: undefined })); }}
+                  {...register("email")}
                   placeholder={r.emailPlaceholder}
                   autoComplete="email"
                   disabled={busy}
-                  aria-invalid={!!fieldErrors.email}
-                  className={fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  aria-invalid={!!errors.email}
+                  className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
-                {fieldErrors.email && <p role="alert" className="text-xs text-red-500">{fieldErrors.email}</p>}
+                {errors.email && <p role="alert" className="text-xs text-red-500">{errors.email.message}</p>}
               </div>
 
               {/* Password */}
@@ -268,13 +265,12 @@ function RegisterForm() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined })); }}
+                    {...register("password")}
                     placeholder={r.passwordPlaceholder}
                     autoComplete="new-password"
                     disabled={busy}
-                    aria-invalid={!!fieldErrors.password}
-                    className={`pr-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    aria-invalid={!!errors.password}
+                    className={`pr-10 ${errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
                   <Button
                     type="button"
@@ -287,7 +283,7 @@ function RegisterForm() {
                   </Button>
                 </div>
                 {password && <PasswordStrengthBar password={password} />}
-                {fieldErrors.password && <p role="alert" className="text-xs text-red-500">{fieldErrors.password}</p>}
+                {errors.password && <p role="alert" className="text-xs text-red-500">{errors.password.message}</p>}
               </div>
 
               {/* Confirm Password */}
@@ -297,14 +293,13 @@ function RegisterForm() {
                   <Input
                     id="confirm-password"
                     type={showConfirm ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); if (fieldErrors.confirmPassword) setFieldErrors((p) => ({ ...p, confirmPassword: undefined })); }}
+                    {...register("confirmPassword")}
                     placeholder={r.confirmPasswordPlaceholder}
                     autoComplete="new-password"
                     disabled={busy}
-                    aria-invalid={!!fieldErrors.confirmPassword}
+                    aria-invalid={!!errors.confirmPassword}
                     className={`pr-10 ${
-                      fieldErrors.confirmPassword
+                      errors.confirmPassword
                         ? "border-red-500 focus-visible:ring-red-500"
                         : confirmPassword && confirmPassword === password
                           ? "border-green-600"
@@ -321,12 +316,12 @@ function RegisterForm() {
                     <EyeIcon open={showConfirm} />
                   </Button>
                 </div>
-                {confirmPassword && !fieldErrors.confirmPassword && (
+                {confirmPassword && !errors.confirmPassword && (
                   <p className={`text-xs ${confirmPassword === password ? "text-green-600" : "text-red-500"}`}>
                     {confirmPassword === password ? r.passwordMatch : r.passwordNoMatch}
                   </p>
                 )}
-                {fieldErrors.confirmPassword && <p role="alert" className="text-xs text-red-500">{fieldErrors.confirmPassword}</p>}
+                {errors.confirmPassword && <p role="alert" className="text-xs text-red-500">{errors.confirmPassword.message}</p>}
               </div>
 
               {/* Submit */}

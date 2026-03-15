@@ -1,7 +1,8 @@
 "use client";
 import { appConfig } from "@/lib/app-config";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -255,10 +256,37 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
   const { t } = useLocale();
   const cl = t.chatLayout;
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoadingConvos, setIsLoadingConvos] = useState(true);
-  const [hasMore, setHasMore] = useState(false);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const queryClient = useQueryClient();
+
+  const {
+    data,
+    isLoading: isLoadingConvos,
+    isFetchingNextPage: isFetchingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["conversations"],
+    queryFn: async ({ pageParam }) => {
+      const url = pageParam
+        ? `/api/conversations?cursor=${encodeURIComponent(pageParam as string)}`
+        : "/api/conversations";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("failed to fetch conversations");
+      const json = await res.json() as { conversations: Conversation[]; hasMore: boolean };
+      return {
+        ...json,
+        conversations: json.conversations.map((c) => ({ ...c, updatedAt: new Date(c.updatedAt) })),
+      };
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.conversations.at(-1)?.updatedAt.toISOString() : undefined,
+  });
+
+  const conversations = useMemo(
+    () => data?.pages.flatMap((p) => p.conversations) ?? [],
+    [data],
+  );
 
   const [currentId, setCurrentId] = useState(activeConversationId);
   const [chatKey, setChatKey] = useState(activeConversationId ?? "root");
@@ -266,65 +294,17 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Stable ref for load-more state — avoids stale closures in the observer callback
-  const loadMoreStateRef = useRef({ hasMore, isFetchingMore, conversations });
-  useEffect(() => {
-    loadMoreStateRef.current = { hasMore, isFetchingMore, conversations };
-  }, [hasMore, isFetchingMore, conversations]);
-
-  // ── Initial fetch ────────────────────────────────────────────────────────
-  useEffect(() => {
-    fetch("/api/conversations")
-      .then((r) => r.json())
-      .then((data: { conversations: Conversation[]; hasMore: boolean }) => {
-        setConversations(
-          data.conversations.map((c) => ({ ...c, updatedAt: new Date(c.updatedAt) })),
-        );
-        setHasMore(data.hasMore);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingConvos(false));
-  }, []);
-
-  // ── Load more (cursor pagination) ────────────────────────────────────────
-  const loadMoreConversations = useCallback(async () => {
-    const state = loadMoreStateRef.current;
-    if (!state.hasMore || state.isFetchingMore) return;
-
-    setIsFetchingMore(true);
-    loadMoreStateRef.current.isFetchingMore = true; // optimistic lock
-
-    const cursor = state.conversations.at(-1)?.updatedAt.toISOString();
-    if (!cursor) { setIsFetchingMore(false); return; }
-
-    try {
-      const res = await fetch(`/api/conversations?cursor=${encodeURIComponent(cursor)}`);
-      if (res.ok) {
-        const data: { conversations: Conversation[]; hasMore: boolean } = await res.json();
-        setConversations((prev) => [
-          ...prev,
-          ...data.conversations.map((c) => ({ ...c, updatedAt: new Date(c.updatedAt) })),
-        ]);
-        setHasMore(data.hasMore);
-      }
-    } catch {
-      // silently ignore — user can scroll again to retry
-    } finally {
-      setIsFetchingMore(false);
-    }
-  }, []);
-
   // ── IntersectionObserver — fires when sentinel enters view ───────────────
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadMoreConversations();
+        if (entries[0].isIntersecting && hasMore && !isFetchingMore) fetchNextPage();
       },
       { threshold: 0 },
     );
     if (sentinelRef.current) observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [loadMoreConversations]);
+  }, [fetchNextPage, hasMore, isFetchingMore]);
 
   // ── Conversation handlers ─────────────────────────────────────────────────
   const handleDeleteConversation = async (id: string) => {
@@ -333,7 +313,19 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
       toast.error(cl.toasts.deleteFailed);
       return;
     }
-    setConversations((prev) => prev.filter((c) => c.id !== id));
+    queryClient.setQueryData(
+      ["conversations"],
+      (old: InfiniteData<{ conversations: Conversation[]; hasMore: boolean }> | undefined) =>
+        old
+          ? {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                conversations: page.conversations.filter((c) => c.id !== id),
+              })),
+            }
+          : old,
+    );
     toast.success(cl.toasts.deleteSuccess);
     if (currentId === id) {
       setCurrentId(null);
@@ -404,10 +396,20 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
             activeConversationId={currentId}
             skipInitialFetch={justCreated}
             onConversationCreated={(newId, title) => {
-              setConversations((prev) => [
-                { id: newId, title: title, updatedAt: new Date(), preview: title },
-                ...prev,
-              ]);
+              queryClient.setQueryData(
+                ["conversations"],
+                (old: InfiniteData<{ conversations: Conversation[]; hasMore: boolean }> | undefined) => {
+                  const newConv = { id: newId, title, updatedAt: new Date(), preview: title };
+                  if (!old) return { pages: [{ conversations: [newConv], hasMore: false }], pageParams: [undefined] };
+                  return {
+                    ...old,
+                    pages: [
+                      { conversations: [newConv, ...old.pages[0].conversations], hasMore: old.pages[0].hasMore },
+                      ...old.pages.slice(1),
+                    ],
+                  };
+                },
+              );
               setJustCreated(true);
               setCurrentId(newId); // update ID but DO NOT change chatKey — do not remount
               window.history.replaceState({}, "", `/chat/${newId}`);

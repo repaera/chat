@@ -16,10 +16,7 @@ export function TypedText({ text, animate = true, typeSpeed = 20, className, onC
 	const elRef = useRef<HTMLSpanElement>(null);
 	const typedRef = useRef<Typed | null>(null);
 	const onCompleteRef = useRef(onComplete);
-
-	useEffect(() => {
-		onCompleteRef.current = onComplete;
-	}, [onComplete]);
+	onCompleteRef.current = onComplete;
 
 	// Skip to completion when the user returns to the tab — browsers throttle
 	// setTimeout/setInterval in background tabs, stalling the animation.

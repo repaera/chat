@@ -42,6 +42,11 @@ export default function ChatClient({
 	// Ref for onConversationCreated — avoid stale closure in the transport memo
 	const onConversationCreatedRef = useRef(onConversationCreated);
 
+	// Keep refs fresh on every render — read at call-time inside memos and callbacks
+	skipInitialFetchRef.current = skipInitialFetch;
+	activeConversationIdRef.current = activeConversationId;
+	onConversationCreatedRef.current = onConversationCreated;
+
 	// ── State ─────────────────────────────────────────────────────────────────
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [hasMore, setHasMore] = useState(true);
@@ -57,18 +62,7 @@ export default function ChatClient({
 	// Heartbeat every 15 minutes — prevent cleanup job from deleting images that are still pending
 	useImageHeartbeat(pendingImage?.imageId ?? null);
 
-	// Keep refs fresh without re-creating the transport memo
 	useEffect(() => {
-		onConversationCreatedRef.current = onConversationCreated;
-	}, [onConversationCreated]);
-
-	useEffect(() => {
-		skipInitialFetchRef.current = skipInitialFetch;
-	}, [skipInitialFetch]);
-
-	useEffect(() => {
-		activeConversationIdRef.current = activeConversationId;
-
 		if (activeConversationId === null) {
 			setMessages([]);
 			setPendingImage(null);
@@ -146,11 +140,8 @@ export default function ChatClient({
 	const isLoading = status === "streaming" || status === "submitted";
 
 	// ── Pagination state ref (stable read inside callbacks) ───────────────────
-	// FIX: Ref to store latest state so IntersectionObserver & loadMoreMessages remain stable
 	const observerStateRef = useRef({ activeConversationId, messages, isLoadingMore, hasMore, setMessages });
-	useEffect(() => {
-		observerStateRef.current = { activeConversationId, messages, isLoadingMore, hasMore, setMessages };
-	}, [activeConversationId, messages, isLoadingMore, hasMore, setMessages]);
+	observerStateRef.current = { activeConversationId, messages, isLoadingMore, hasMore, setMessages };
 
 	// ── Initial fetch ─────────────────────────────────────────────────────────
 	useEffect(() => {

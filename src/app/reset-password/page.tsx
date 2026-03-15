@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Link from "next/link";
 import { requestPasswordReset } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -18,29 +21,28 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 import { MailCheck } from "lucide-react";
 import { appConfig } from "@/lib/app-config";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default function ForgotPasswordPage() {
   const { t } = useLocale();
   const fp = t.forgotPassword;
 
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const schema = z.object({
+    email: z.string().min(1, fp.errors.emailRequired).pipe(z.email(fp.errors.emailInvalid)),
+  });
+  type FormValues = z.infer<typeof schema>;
+
+  const { register, handleSubmit, formState: { errors }, watch } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: "onTouched",
+  });
+
+  const email = watch("email", "");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const validate = () => {
-    if (!email) { setEmailError(fp.errors.emailRequired); return false; }
-    if (!EMAIL_REGEX.test(email)) { setEmailError(fp.errors.emailInvalid); return false; }
-    setEmailError("");
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!validate()) return;
+  const onSubmit = async (data: FormValues) => {
     setLoading(true);
     const { error } = await requestPasswordReset({
-      email,
+      email: data.email,
       redirectTo: "/reset-password",
     });
     setLoading(false);
@@ -72,7 +74,7 @@ export default function ForgotPasswordPage() {
 
           <CardContent className="space-y-4">
             {!sent ? (
-              <>
+              <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs">
                     {fp.emailLabel}
@@ -80,25 +82,23 @@ export default function ForgotPasswordPage() {
                   <Input
                     id="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(""); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                    {...register("email")}
                     placeholder="you@email.com"
                     autoComplete="email"
                     autoFocus
                     disabled={loading}
-                    aria-describedby={emailError ? "email-error" : undefined}
-                    aria-invalid={!!emailError}
-                    className={emailError ? "border-red-500 focus-visible:ring-red-500" : ""}
+                    aria-describedby={errors.email ? "email-error" : undefined}
+                    aria-invalid={!!errors.email}
+                    className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
-                  {emailError && (
+                  {errors.email && (
                     <p id="email-error" role="alert" className="text-xs text-red-500">
-                      {emailError}
+                      {errors.email.message}
                     </p>
                   )}
                 </div>
 
-                <Button onClick={handleSubmit} disabled={loading || !email} className="w-full font-medium">
+                <Button type="submit" disabled={loading || !email} className="w-full font-medium">
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="w-3.5 h-3.5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
@@ -106,7 +106,7 @@ export default function ForgotPasswordPage() {
                     </span>
                   ) : fp.submitButton}
                 </Button>
-              </>
+              </form>
             ) : (
               <div className="space-y-3">
                 <div className="text-center py-2">
@@ -116,7 +116,7 @@ export default function ForgotPasswordPage() {
                     <span className="text-foreground font-medium">{email}</span>
                   </p>
                 </div>
-                <Button variant="outline" className="w-full" onClick={() => { setSent(false); setEmail(""); }} disabled={loading}>
+                <Button variant="outline" className="w-full" onClick={() => setSent(false)} disabled={loading}>
                   {fp.sendToAnother}
                 </Button>
               </div>
