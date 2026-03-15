@@ -172,7 +172,7 @@ export function MessageList({
 
 						// Hide the last assistant message while streaming — TypedText will
 						// animate it in cleanly once streaming completes, with no flicker.
-						if (isStreaming && m.id === lastAssistantId && m.role === "assistant") return null;
+						if (status === "streaming" && m.id === lastAssistantId && m.role === "assistant") return null;
 
 						return (
 							<div
