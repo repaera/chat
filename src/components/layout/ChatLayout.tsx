@@ -370,16 +370,20 @@ export default function ChatLayout({ user, activeConversationId }: Props) {
           <header className="flex h-12 md:h-14 shrink-0 items-center gap-2 px-3 z-10">
             <SidebarTrigger className="h-7 w-7 md:h-9 md:w-9 md:[&_svg]:size-5!" />
             <p className="truncate text-sm md:text-base font-medium text-muted-foreground flex-1 self-center">
-              <TypedText
-                animate={justCreated}
-                typeSpeed={35}
-                text={currentId
-                  ? (() => {
-                      const activeConv = conversations.find((c) => c.id === currentId);
-                      return activeConv?.title ?? activeConv?.preview ?? cl.untitledConversation;
-                    })()
-                  : appConfig.name}
-              />
+              {isLoadingConvos && currentId ? (
+                <span className="inline-block h-3 w-36 rounded bg-muted animate-pulse" />
+              ) : (
+                <TypedText
+                  animate={justCreated}
+                  typeSpeed={35}
+                  text={currentId
+                    ? (() => {
+                        const activeConv = conversations.find((c) => c.id === currentId);
+                        return activeConv?.title ?? activeConv?.preview ?? cl.untitledConversation;
+                      })()
+                    : appConfig.name}
+                />
+              )}
             </p>
             {appConfig.helpCenterUrl && (
               <Button variant="ghost" asChild className="shrink-0 h-8 w-8 md:h-9 md:w-auto md:px-3 text-muted-foreground hover:text-foreground self-center">
