@@ -125,6 +125,10 @@ for arg in "$@"; do
 			echo "    REDIS_URL                 Redis URL for shared rate limiting (optional)"
 			echo "                              e.g. redis://host:6379 or rediss://user:token@host:6380"
 			echo "                              Leave unset to use in-memory (single-instance only)"
+			echo "    LLM_MAX_OUTPUT_TOKENS     max tokens per LLM response (default: 2048)"
+			echo "    LLM_CONTEXT_WINDOW        max messages sent to LLM per turn (default: 30)"
+			echo "    LLM_MAX_STEPS             max agentic tool-call steps per turn (default: 5)"
+			echo "    MAX_TOOL_RESULT_CHARS     truncate tool results above this length (default: 3000)"
 			echo "    PRESERVE_IMAGES        true | unset (default: unset)"
 			echo "                              Skip R2 object deletion on conversation delete/cleanup."
 			echo "                              Use when an MCP server stores R2 image URLs externally."
@@ -429,6 +433,13 @@ collect_config_interactive() {
 	ask_sec_opt REDIS_URL "Redis URL (e.g. redis://host:6379 or rediss://user:token@host:6380)"
 
 	echo ""
+	info "LLM tuning — press Enter to accept defaults"
+	ask_opt LLM_MAX_OUTPUT_TOKENS "Max tokens per response" "2048"
+	ask_opt LLM_CONTEXT_WINDOW    "Max messages sent to LLM per turn" "30"
+	ask_opt LLM_MAX_STEPS         "Max agentic tool-call steps per turn" "5"
+	ask_opt MAX_TOOL_RESULT_CHARS "Truncate tool results above this length (chars)" "3000"
+
+	echo ""
 	info "Analytics — press Enter to skip"
 	ask_opt GTM_ID "Google Tag Manager ID (e.g. GTM-XXXXXX)"
 
@@ -539,6 +550,10 @@ collect_config_silent() {
 	# Locale
 	APP_LOCALE="${APP_LOCALE:-}"
 	REDIS_URL="${REDIS_URL:-}"
+	LLM_MAX_OUTPUT_TOKENS="${LLM_MAX_OUTPUT_TOKENS:-}"
+	LLM_CONTEXT_WINDOW="${LLM_CONTEXT_WINDOW:-}"
+	LLM_MAX_STEPS="${LLM_MAX_STEPS:-}"
+	MAX_TOOL_RESULT_CHARS="${MAX_TOOL_RESULT_CHARS:-}"
 	PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
 	USE_PREBUILT="${USE_PREBUILT:-true}"
 	APP_IMAGE="${APP_IMAGE:-ghcr.io/repaera/chat:latest}"
@@ -750,6 +765,12 @@ ${APP_LOCALE:+APP_LOCALE=${APP_LOCALE}}
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
 ${REDIS_URL:+REDIS_URL=${REDIS_URL}}
+
+# ── LLM tuning ────────────────────────────────────────────────────────────────
+${LLM_MAX_OUTPUT_TOKENS:+LLM_MAX_OUTPUT_TOKENS=${LLM_MAX_OUTPUT_TOKENS}}
+${LLM_CONTEXT_WINDOW:+LLM_CONTEXT_WINDOW=${LLM_CONTEXT_WINDOW}}
+${LLM_MAX_STEPS:+LLM_MAX_STEPS=${LLM_MAX_STEPS}}
+${MAX_TOOL_RESULT_CHARS:+MAX_TOOL_RESULT_CHARS=${MAX_TOOL_RESULT_CHARS}}
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 ${GTM_ID:+NEXT_PUBLIC_GTM_ID=${GTM_ID}}
