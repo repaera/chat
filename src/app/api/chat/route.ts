@@ -262,8 +262,21 @@ export async function POST(req: Request) {
   // Pre-process: convert custom parts (location/commute) → plain text parts
   // BEFORE convertToModelMessages. AI SDK v6 strips unknown part types silently,
   // so we must normalize first. Only type:"text" and type:"file" survive.
-  const messagesForLLM = messages.map((msg) => {
-    const parts = (msg.parts ?? []) as any[];
+  const contextWindow = parseInt(process.env.LLM_CONTEXT_WINDOW ?? "30", 10);
+  const MAX_TOOL_RESULT_CHARS = parseInt(process.env.MAX_TOOL_RESULT_CHARS ?? "3000", 10);
+  const messagesForLLM = messages.slice(-contextWindow).map((msg) => {
+    const parts = ((msg.parts ?? []) as any[]).map((p: any) => {
+      // Issue 3: truncate large tool-invocation results before they reach the LLM
+      if (
+        p.type === "tool-invocation" &&
+        p.state === "result" &&
+        typeof p.result === "string" &&
+        p.result.length > MAX_TOOL_RESULT_CHARS
+      ) {
+        return { ...p, result: p.result.slice(0, MAX_TOOL_RESULT_CHARS) + "\n[truncated]" };
+      }
+      return p;
+    });
     const newParts = parts.flatMap((p: any) => {
       if (p.type === "location") {
         return [{ type: "text" as const, text: formatLocationForLLM(p) }];
@@ -271,8 +284,11 @@ export async function POST(req: Request) {
       if (p.type === "commute") {
         return [{ type: "text" as const, text: formatCommuteForLLM(p) }];
       }
-      // Keep only known SDK part types — strip everything else
-      if (p.type === "text" || p.type === "file") return [p];
+      // Keep only known SDK part types — strip everything else.
+      // file parts are only valid on user messages; assistant messages can have
+      // LLM-output images attached (from DB) which must not be forwarded to the LLM.
+      if (p.type === "text") return [p];
+      if (p.type === "file" && msg.role === "user") return [p];
       return [];
     });
     // If all parts were stripped and there was no text, add empty guard
@@ -291,9 +307,17 @@ export async function POST(req: Request) {
   const needsImagePrefetch = provider === "azure-openai" || provider === "azure-foundry" ||
     (provider === "auto" && !!process.env.AZURE_OPENAI_API_KEY);
 
+  // Issue 1: only inject [image_url] hint for the last user message — historical
+  // images were already processed by the LLM and don't need the hint re-injected.
+  const lastUserMsgIdx = rawModelMessages.reduce(
+    (acc, _m, i) => (rawModelMessages[i].role === "user" ? i : acc),
+    -1,
+  );
+
   const normalizedMessages = await Promise.all(
-    rawModelMessages.map(async (m) => {
+    rawModelMessages.map(async (m, idx) => {
       if (!Array.isArray(m.content)) return m;
+      const isLastUserMsg = idx === lastUserMsgIdx;
       const content: any[] = [];
       for (const part of m.content as any[]) {
         if (
@@ -304,8 +328,9 @@ export async function POST(req: Request) {
           typeof part.data === "string" &&
           part.data.startsWith("http")
         ) {
-          // Inject URL as text so the LLM can refer to its URL
-          content.push({ type: "text", text: `[image_url: ${part.data}]` });
+          if (isLastUserMsg) {
+            content.push({ type: "text", text: `[image_url: ${part.data}]` });
+          }
           try {
             const res = await fetch(part.data);
             const buf = await res.arrayBuffer();
@@ -318,8 +343,8 @@ export async function POST(req: Request) {
             content.push({ type: "image", image: part.data as string });
           }
         } else {
-          // Inject URL as text hint for non-Azure providers too
           if (
+            isLastUserMsg &&
             part.type === "file" &&
             typeof part.mediaType === "string" &&
             part.mediaType.startsWith("image/") &&
@@ -341,22 +366,46 @@ export async function POST(req: Request) {
   });
 
   // ── 7. Stream response ────────────────────────────────────────
+
+  // Issue 4: only include image instructions when the conversation actually has images
+  const conversationHasImages =
+    imageParts.length > 0 ||
+    messages.some((m) =>
+      (m.parts ?? []).some(
+        (p: any) => p.type === "file" && (p.mediaType as string)?.startsWith("image/"),
+      ),
+    );
+
+  // Issue 6: only inject currentTime when the message contains time-related keywords —
+  // otherwise it changes every minute and prevents Anthropic prompt caching
+  const TIME_KEYWORDS = ["time", "now", "today", "when", "date", "hour", "minute", "morning", "afternoon", "evening", "night", "week", "month", "year"];
+  const lastUserText = (lastMsg?.parts ?? [])
+    .filter(isTextUIPart)
+    .map((p) => p.text)
+    .join("")
+    .toLowerCase();
+  const includeCurrentTime = !!currentTime && TIME_KEYWORDS.some((kw) => lastUserText.includes(kw));
+
   const result = streamText({
     model: resolveModel(),
-    maxOutputTokens: 2048,
+    maxOutputTokens: process.env.LLM_MAX_OUTPUT_TOKENS
+      ? parseInt(process.env.LLM_MAX_OUTPUT_TOKENS, 10)
+      : 2048,
     system: [
       t.system.persona(session.user.name ?? "user"),
       ...(appConfig.personaContext ? [`You specialize in: ${appConfig.personaContext}.`] : []),
       t.system.helpWithTools,
       t.system.tone,
       t.system.proactiveTools,
-      t.system.imageUrlTag,
-      t.system.imageUrlUsage,
-      t.system.imageUrlToolHint,
-      t.system.analyseImage,
-      t.system.imageOutput,
+      ...(conversationHasImages ? [
+        t.system.imageUrlTag,
+        t.system.imageUrlUsage,
+        t.system.imageUrlToolHint,
+        t.system.analyseImage,
+        t.system.imageOutput,
+      ] : []),
       ...(timezone ? [t.system.timezone(timezone)] : []),
-      ...(currentTime ? [t.system.currentTime(currentTime)] : []),
+      ...(includeCurrentTime ? [t.system.currentTime(currentTime as string)] : []),
     ].join("\n"),
     // convertToModelMessages first → UIMessage[] to ModelMessage[]
     // then pruneMessages to strip reasoning parts from old messages —
@@ -366,7 +415,11 @@ export async function POST(req: Request) {
     tools,
     // maxSteps was removed in v5 — replaced with stopWhen using an explicit condition
     // Docs: https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0
-    stopWhen: stepCountIs(5),
+    // LLM_MAX_STEPS: increase for agentic MCP workflows (e.g. polling Replicate predictions).
+    // Default 5 is safe for simple tool calls. For media generation polling, use 10-20.
+    stopWhen: stepCountIs(
+      process.env.LLM_MAX_STEPS ? parseInt(process.env.LLM_MAX_STEPS, 10) : 5
+    ),
 
     // onError: destructure { error } — not the direct error object
     // Docs: https://ai-sdk.dev/docs/ai-sdk-core/generating-text#onerror-callback
@@ -377,7 +430,18 @@ export async function POST(req: Request) {
           Sentry.captureException(e, { tags: { source: "mcp:close:onError" } })
         );
       }
-      console.error("[chat/onError]", JSON.stringify(error, null, 2));
+      // Log a focused summary — avoid JSON.stringify(error) which serializes
+      // embedded binary image data (Uint8Array) into massive unreadable blobs.
+      const summary = {
+        name: error instanceof Error ? error.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+        status: (error as any)?.status ?? (error as any)?.statusCode,
+        cause: error instanceof Error && error.cause
+          ? String(error.cause)
+          : undefined,
+        responseBody: (error as any)?.responseBody ?? (error as any)?.body ?? undefined,
+      };
+      console.error("[chat/onError]", JSON.stringify(summary, null, 2));
       Sentry.captureException(error, {
         tags: { source: "llm", provider: process.env.LLM_PROVIDER ?? "auto" },
         extra: { userId, conversationId: convId },
