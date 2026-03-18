@@ -31,6 +31,7 @@ const STRINGS: Record<string, { title: string; description: string; backToChat: 
 
 export default function NotFound() {
   const [s] = useState(() => {
+    if (typeof document === "undefined") return STRINGS.en;
     const lang = document.documentElement.lang?.split("-")[0] ?? "en";
     return STRINGS[lang] ?? STRINGS.en;
   });
