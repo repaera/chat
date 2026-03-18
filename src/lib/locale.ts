@@ -94,21 +94,14 @@ function parseAcceptLanguage(header: string | null): string | null {
 // Does not throw — always returns a string (fallback to APP_LOCALE / "en").
 export async function detectLocaleFromRequest(req: Request): Promise<string> {
   const appLocale = (process.env.APP_LOCALE ?? "en").toLowerCase();
-  const tag = "[locale:detect]";
 
   // Get IP from headers (proxy-aware)
   const forwarded = req.headers.get("x-forwarded-for");
   const realIp = req.headers.get("x-real-ip");
   const ip = forwarded?.split(",")[0]?.trim() ?? realIp ?? null;
 
-  console.log(`${tag} ip=${ip ?? "null"} x-forwarded-for="${forwarded ?? ""}" x-real-ip="${realIp ?? ""}"`);
-
   // Skip loopback / local IP (dev environment)
   const isLocalIp = !ip || ip === "::1" || ip === "127.0.0.1" || ip.startsWith("192.168.") || ip.startsWith("10.");
-
-  if (isLocalIp) {
-    console.log(`${tag} local/missing IP — skipping geo, falling back to Accept-Language`);
-  }
 
   // ── Flow 3: IP Geolocation via IPinfo Lite ───────────────────
   // IPinfo Lite: unlimited, no API key, IPv4 + IPv6, HTTPS, country-level only.
@@ -116,47 +109,35 @@ export async function detectLocaleFromRequest(req: Request): Promise<string> {
   // Docs: https://ipinfo.io/lite
   if (!isLocalIp && ip) {
     const geoUrl = `https://ipinfo.io/${ip}/country`;
-    console.log(`${tag} fetching geo (IPinfo Lite): ${geoUrl}`);
     try {
       const geoRes = await fetch(geoUrl, {
         signal: AbortSignal.timeout(2000),
         headers: { Accept: "text/plain" },
       });
-      console.log(`${tag} geo response: status=${geoRes.status} ok=${geoRes.ok}`);
 
       if (geoRes.ok) {
         const countryCode = (await geoRes.text()).trim().toUpperCase();
-        console.log(`${tag} geo parsed: country_code="${countryCode}"`);
 
         if (countryCode && countryCode.length === 2) {
           const geoLocale = COUNTRY_TO_LOCALE[countryCode];
           if (geoLocale) {
-            console.log(`${tag} resolved via geo: ${countryCode} → locale="${geoLocale}"`);
             return geoLocale;
           }
-          console.log(`${tag} country_code=${countryCode} has no locale mapping — falling back`);
-        } else {
-          console.log(`${tag} unexpected response body: "${countryCode}"`);
         }
       }
-    } catch (err) {
+    } catch {
       // Geo failed (timeout, network error) — proceed to Accept-Language fallback
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`${tag} geo fetch failed: ${msg}`);
     }
   }
 
   // ── Flow 4: Accept-Language fallback ─────────────────────────
   const acceptLang = req.headers.get("accept-language");
-  console.log(`${tag} accept-language="${acceptLang ?? ""}"`);
   const langLocale = parseAcceptLanguage(acceptLang);
   if (langLocale) {
-    console.log(`${tag} resolved via Accept-Language: "${acceptLang}" → locale="${langLocale}"`);
     return langLocale;
   }
 
   // ── Fallback: APP_LOCALE env ──────────────────────────────────
-  console.log(`${tag} no locale detected — using APP_LOCALE/default: "${appLocale}"`);
   return appLocale;
 }
 
