@@ -77,7 +77,10 @@ export default function ChatClient({
 							id,
 							conversationId: activeConversationIdRef.current || undefined,
 							timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-							currentTime: new Date().toLocaleTimeString([], {
+							currentTime: new Date().toLocaleString(navigator.language, {
+								year: "numeric",
+								month: "long",
+								day: "numeric",
 								hour: "2-digit",
 								minute: "2-digit",
 								hour12: false,

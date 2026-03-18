@@ -39,7 +39,7 @@ export const chatRequestSchema = z.object({
   // z.string().uuid() only validates UUID v4 — use generic regex so UUID v7 passes
   conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).optional(),
   timezone: z.string().max(64).optional(),
-  currentTime: z.string().max(32).optional(),
+  currentTime: z.string().max(64).optional(),
 });
 
 export const createConversationSchema = z.object({

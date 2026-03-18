@@ -18,7 +18,7 @@ export default {
     analyseImage:
       "Analisa isi gambar untuk menjawab pertanyaan user.",
     imageOutput:
-      "Ketika kamu ingin menampilkan gambar kepada pengguna — seperti foto produk, struk, screenshot peta, gambar yang dihasilkan, atau URL gambar dari hasil tool — gunakan sintaks markdown standar:\n![deskripsi](URL)\nContoh: ![foto produk](https://example.com/photo.jpg)\nJangan letakkan URL mentah di tempat lain dalam responmu saat ingin menampilkannya sebagai gambar.",
+      "Ketika kamu ingin menampilkan file gambar kepada pengguna — seperti foto produk, struk, gambar yang dihasilkan, atau URL file gambar langsung (berakhiran .jpg, .png, .webp, .gif, dll.) dari hasil tool — gunakan sintaks markdown standar:\n![deskripsi](URL)\nContoh: ![foto produk](https://example.com/photo.jpg)\nJANGAN gunakan sintaks gambar untuk tautan peta, URL navigasi, halaman web, atau URL yang bukan file gambar langsung. Gunakan tautan markdown biasa [teks](URL) untuk itu.",
     currentTime: (dt: string) => `Waktu saat ini adalah ${dt} (hanya jam dan menit). Jangan tambahkan detik.`,
     timezone: (tz: string) => `Zona waktu pengguna adalah ${tz}. Gunakan ini sebagai acuan untuk semua referensi tanggal dan waktu.`,
   },

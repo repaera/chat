@@ -42,7 +42,15 @@ function ChatImage({ src }: { src: string }) {
 // ── LLM image card with skeleton placeholder ───────────────────────────────
 function MarkdownImage({ src, alt }: { src?: string | Blob; alt?: string }) {
 	const [loaded, setLoaded] = useState(false);
+	const [errored, setErrored] = useState(false);
 	if (!src || typeof src !== "string") return null;
+	if (errored) {
+		return (
+			<a href={src} target="_blank" rel="noopener noreferrer" className="underline break-all text-sm">
+				{alt || src}
+			</a>
+		);
+	}
 	return (
 		<a href={src} target="_blank" rel="noopener noreferrer" className="block my-1.5">
 			<div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border">
@@ -54,6 +62,7 @@ function MarkdownImage({ src, alt }: { src?: string | Blob; alt?: string }) {
 					alt={alt ?? ""}
 					loading="lazy"
 					onLoad={() => setLoaded(true)}
+					onError={() => setErrored(true)}
 					className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
 				/>
 			</div>

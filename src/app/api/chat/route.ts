@@ -25,7 +25,6 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { chatRequestSchema } from "@/lib/schemas";
 import { resolveUserLocale } from "@/lib/locale";
 import { appConfig } from "@/lib/app-config";
-import { deleteFromR2 } from "@/lib/storage";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -130,17 +129,19 @@ export async function POST(req: Request) {
   // ── 4. Resolve or create conversation ─────────────────────────
   let convId: string;
   let convTitle: string | null = null;
+  let convHasImages = false;
 
   if (conversationId) {
     const existing = await db.conversation.findFirst({
       where: { id: conversationId, userId: userId },
-      select: { id: true, title: true },
+      select: { id: true, title: true, hasImages: true },
     });
     if (!existing) {
       return Response.json({ error: "Conversation not found." }, { status: 404 });
     }
     convId = conversationId;
     convTitle = existing.title;
+    convHasImages = existing.hasImages;
   } else {
     const newConv = await db.conversation.create({
       data: { id: newId(), userId: userId },
@@ -264,7 +265,7 @@ export async function POST(req: Request) {
   // so we must normalize first. Only type:"text" and type:"file" survive.
   const contextWindow = parseInt(process.env.LLM_CONTEXT_WINDOW ?? "30", 10);
   const MAX_TOOL_RESULT_CHARS = parseInt(process.env.MAX_TOOL_RESULT_CHARS ?? "3000", 10);
-  const messagesForLLM = messages.slice(-contextWindow).map((msg) => {
+  const messagesForLLM = messages.slice(-contextWindow).map((msg, i, arr) => {
     const parts = ((msg.parts ?? []) as any[]).map((p: any) => {
       // Issue 3: truncate large tool-invocation results before they reach the LLM
       if (
@@ -295,6 +296,11 @@ export async function POST(req: Request) {
     if (newParts.length === 0) {
       return { ...msg, parts: [{ type: "text" as const, text: "" }] };
     }
+    // Prepend current time to the last user message — language-agnostic (uses the
+    // user's resolved locale), keeps the system prompt stable for prompt caching.
+    if (i === arr.length - 1 && msg.role === "user" && currentTime) {
+      return { ...msg, parts: [{ type: "text" as const, text: `[datetime: ${currentTime}]` }, ...newParts] };
+    }
     return { ...msg, parts: newParts };
   });
 
@@ -307,52 +313,33 @@ export async function POST(req: Request) {
   const needsImagePrefetch = provider === "azure-openai" || provider === "azure-foundry" ||
     (provider === "auto" && !!process.env.AZURE_OPENAI_API_KEY);
 
-  // Issue 1: only inject [image_url] hint for the last user message — historical
-  // images were already processed by the LLM and don't need the hint re-injected.
-  const lastUserMsgIdx = rawModelMessages.reduce(
-    (acc, _m, i) => (rawModelMessages[i].role === "user" ? i : acc),
-    -1,
-  );
-
   const normalizedMessages = await Promise.all(
-    rawModelMessages.map(async (m, idx) => {
+    rawModelMessages.map(async (m) => {
       if (!Array.isArray(m.content)) return m;
-      const isLastUserMsg = idx === lastUserMsgIdx;
       const content: any[] = [];
       for (const part of m.content as any[]) {
+        // After convertToModelMessages, FileUIPart {url} becomes {type:"file", data: url string}.
+        // Inject [image_url] hint for every image so the LLM can reference the URL in any turn.
         if (
-          needsImagePrefetch &&
           part.type === "file" &&
           typeof part.mediaType === "string" &&
           part.mediaType.startsWith("image/") &&
           typeof part.data === "string" &&
           part.data.startsWith("http")
         ) {
-          if (isLastUserMsg) {
-            content.push({ type: "text", text: `[image_url: ${part.data}]` });
-          }
-          try {
-            const res = await fetch(part.data);
-            const buf = await res.arrayBuffer();
-            content.push({
-              type: "image",
-              image: new Uint8Array(buf),
-              mediaType: part.mediaType,
-            });
-          } catch {
-            content.push({ type: "image", image: part.data as string });
+          content.push({ type: "text", text: `[image_url: ${part.data}]` });
+          if (needsImagePrefetch) {
+            try {
+              const res = await fetch(part.data);
+              const buf = await res.arrayBuffer();
+              content.push({ type: "image", image: new Uint8Array(buf), mediaType: part.mediaType });
+            } catch {
+              content.push({ type: "image", image: part.data as string });
+            }
+          } else {
+            content.push(part);
           }
         } else {
-          if (
-            isLastUserMsg &&
-            part.type === "file" &&
-            typeof part.mediaType === "string" &&
-            part.mediaType.startsWith("image/") &&
-            typeof part.data === "string" &&
-            part.data.startsWith("http")
-          ) {
-            content.push({ type: "text", text: `[image_url: ${part.data}]` });
-          }
           content.push(part);
         }
       }
@@ -367,24 +354,17 @@ export async function POST(req: Request) {
 
   // ── 7. Stream response ────────────────────────────────────────
 
-  // Issue 4: only include image instructions when the conversation actually has images
+  // Only include image instructions when the conversation actually has images.
+  // convHasImages: DB flag (covers full history). Falls back to scanning the client-sent
+  // messages window for conversations created before the hasImages flag was introduced.
   const conversationHasImages =
+    convHasImages ||
     imageParts.length > 0 ||
     messages.some((m) =>
       (m.parts ?? []).some(
         (p: any) => p.type === "file" && (p.mediaType as string)?.startsWith("image/"),
       ),
     );
-
-  // Issue 6: only inject currentTime when the message contains time-related keywords —
-  // otherwise it changes every minute and prevents Anthropic prompt caching
-  const TIME_KEYWORDS = ["time", "now", "today", "when", "date", "hour", "minute", "morning", "afternoon", "evening", "night", "week", "month", "year"];
-  const lastUserText = (lastMsg?.parts ?? [])
-    .filter(isTextUIPart)
-    .map((p) => p.text)
-    .join("")
-    .toLowerCase();
-  const includeCurrentTime = !!currentTime && TIME_KEYWORDS.some((kw) => lastUserText.includes(kw));
 
   const result = streamText({
     model: resolveModel(),
@@ -405,7 +385,6 @@ export async function POST(req: Request) {
         t.system.imageOutput,
       ] : []),
       ...(timezone ? [t.system.timezone(timezone)] : []),
-      ...(includeCurrentTime ? [t.system.currentTime(currentTime as string)] : []),
     ].join("\n"),
     // convertToModelMessages first → UIMessage[] to ModelMessage[]
     // then pruneMessages to strip reasoning parts from old messages —
@@ -496,7 +475,10 @@ export async function POST(req: Request) {
         });
         await db.conversation.update({
           where: { id: convId },
-          data: { updatedAt: new Date() },
+          data: {
+            updatedAt: new Date(),
+            ...(imageParts.length > 0 || imageUrls.length > 0 ? { hasImages: true } : {}),
+          },
         });
 
         // Attach LLM-output images as Image records on the assistant message

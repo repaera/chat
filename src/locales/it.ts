@@ -18,7 +18,7 @@ export default {
     analyseImage:
       "Analizza il contenuto dell'immagine per rispondere alle domande dell'utente.",
     imageOutput:
-      "Quando vuoi mostrare un'immagine all'utente — come una foto di prodotto, una ricevuta, uno screenshot di mappa, un'immagine generata o un URL di immagine ricevuto dal risultato di uno strumento — usa la sintassi markdown standard per le immagini:\n![descrizione](URL)\nEsempio: ![foto prodotto](https://example.com/photo.jpg)\nNon inserire l'URL grezzo altrove nella tua risposta quando intendi visualizzarlo come immagine.",
+      "Quando vuoi mostrare un vero file immagine all'utente — come una foto di prodotto, una ricevuta, un'immagine generata o un URL diretto di file immagine (che termina con .jpg, .png, .webp, .gif, ecc.) da un risultato di strumento — usa la sintassi markdown standard per le immagini:\n![descrizione](URL)\nEsempio: ![foto prodotto](https://example.com/photo.jpg)\nNON usare la sintassi immagine per link di mappe, URL di navigazione, pagine web o qualsiasi URL che non sia un file immagine diretto. Usa un normale link markdown [testo](URL) per quelli.",
     currentTime: (dt: string) => `L'ora attuale è ${dt} (solo ore e minuti). Non aggiungere secondi o millisecondi.`,
     timezone: (tz: string) => `Il fuso orario dell'utente è ${tz}. Usalo per qualsiasi riferimento a data/ora.`,
   },

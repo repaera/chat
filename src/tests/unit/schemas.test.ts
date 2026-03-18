@@ -106,10 +106,10 @@ describe("chatRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects currentTime longer than 32 characters", () => {
+  it("rejects currentTime longer than 64 characters", () => {
     const result = chatRequestSchema.safeParse({
       messages: [{ id: "1", role: "user", parts: [{ type: "text", text: "hi" }] }],
-      currentTime: "A".repeat(33),
+      currentTime: "A".repeat(65),
     });
     expect(result.success).toBe(false);
   });

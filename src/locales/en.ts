@@ -18,7 +18,7 @@ export default {
     analyseImage:
       "Analyse the image content to answer the user's questions.",
     imageOutput:
-      "When you want to display an image to the user — such as a product photo, receipt, map screenshot, generated image, or any image URL received from a tool result — embed it using standard markdown image syntax:\n![description](URL)\nExample: ![product photo](https://example.com/photo.jpg)\nDo not place the raw URL elsewhere in your response when you intend to display it as an image.",
+      "When you want to display an actual image file to the user — such as a product photo, receipt, generated image, or a direct image file URL (ending in .jpg, .png, .webp, .gif, etc.) from a tool result — embed it using standard markdown image syntax:\n![description](URL)\nExample: ![product photo](https://example.com/photo.jpg)\nDo NOT use image syntax for map links, navigation URLs, web pages, or any URL that is not a direct image file. Use a regular markdown link [text](URL) for those instead.",
     currentTime: (dt: string) => `The current time is ${dt} (hours and minutes only). Do not add seconds or milliseconds.`,
     timezone: (tz: string) => `The user's timezone is ${tz}. Use this for any date/time references.`,
   },
