@@ -17,6 +17,8 @@ export default {
       "oder füge sie als photo_url/image_url-Wert in relevante Tool-Aufrufe ein.",
     analyseImage:
       "Analysiere den Bildinhalt, um die Fragen des Benutzers zu beantworten.",
+    imageOutput:
+      "Wenn du dem Benutzer ein Bild anzeigen möchtest — z. B. ein Produktfoto, einen Beleg, einen Karten-Screenshot, ein generiertes Bild oder eine Bild-URL aus einem Tool-Ergebnis — verwende die Standard-Markdown-Bildsyntax:\n![Beschreibung](URL)\nBeispiel: ![Produktfoto](https://example.com/photo.jpg)\nPlatziere die rohe URL nicht an anderer Stelle in deiner Antwort, wenn du sie als Bild anzeigen möchtest.",
     currentTime: (dt: string) => `Die aktuelle Uhrzeit ist ${dt} (nur Stunden und Minuten). Füge keine Sekunden oder Millisekunden hinzu.`,
     timezone: (tz: string) => `Die Zeitzone des Benutzers ist ${tz}. Verwende dies für alle Datums-/Zeitangaben.`,
   },

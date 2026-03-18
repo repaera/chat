@@ -5,6 +5,8 @@ import { useRef, useState, useEffect } from "react";
 import type { UIMessage } from "ai";
 import { Button } from "@/components/ui/button";
 import Linkify from "linkify-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Bot } from "lucide-react";
 import { LocationBubble, CommuteBubble } from "@/components/chat/LocationBubble";
 import type { LocationPart, CommutePart } from "@/components/chat/location-types";
@@ -34,6 +36,28 @@ function ChatImage({ src }: { src: string }) {
         `}
 			/>
 		</div>
+	);
+}
+
+// ── LLM image card with skeleton placeholder ───────────────────────────────
+function MarkdownImage({ src, alt }: { src?: string | Blob; alt?: string }) {
+	const [loaded, setLoaded] = useState(false);
+	if (!src || typeof src !== "string") return null;
+	return (
+		<a href={src} target="_blank" rel="noopener noreferrer" className="block my-1.5">
+			<div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border">
+				{!loaded && (
+					<div className="absolute inset-0 bg-muted animate-pulse rounded-xl" />
+				)}
+				<img
+					src={src}
+					alt={alt ?? ""}
+					loading="lazy"
+					onLoad={() => setLoaded(true)}
+					className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+				/>
+			</div>
+		</a>
 	);
 }
 
@@ -214,7 +238,7 @@ export function MessageList({
 									<div
 										className={`
                       inline-flex flex-col rounded-2xl px-2.5 py-1 text-sm space-y-1.5
-                      break-words min-w-0
+                      wrap-break-word min-w-0
                       ${
 																m.role === "user"
 																	? "max-w-xs bg-muted text-foreground rounded-br-sm"
@@ -249,28 +273,47 @@ export function MessageList({
 												i === 0 &&
 												m.id === animateMessageId &&
 												m.id !== animationDoneId;
-											return (
-												<p key={`txt-${i}`} className="whitespace-pre-wrap leading-relaxed">
-													{shouldAnimate ? (
+
+											// User messages: plain text with linkify
+											if (isUser) {
+												return (
+													<p key={`txt-${i}`} className="whitespace-pre-wrap leading-relaxed">
+														<Linkify options={{ target: "_blank", rel: "noopener noreferrer", className: "underline underline-offset-2 hover:opacity-80" }}>
+															{textPart.text}
+														</Linkify>
+													</p>
+												);
+											}
+
+											// Assistant messages: TypedText during animation, react-markdown after
+											if (shouldAnimate) {
+												return (
+													<p key={`txt-${i}`} className="whitespace-pre-wrap leading-relaxed">
 														<TypedText
 															text={textPart.text}
 															typeSpeed={5}
 															onComplete={() => setAnimationDoneId(m.id)}
 														/>
-													) : (
-														<Linkify
-															options={{
-																target: "_blank",
-																rel: "noopener noreferrer",
-																className: isUser
-																	? "underline underline-offset-2 hover:opacity-80"
-																	: "text-blue-600 underline underline-offset-2 hover:text-blue-700",
-															}}
-														>
-															{textPart.text}
-														</Linkify>
-													)}
-												</p>
+													</p>
+												);
+											}
+
+											return (
+												<div key={`txt-${i}`} className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:rounded-lg [&_code]:text-xs">
+													<ReactMarkdown
+														remarkPlugins={[remarkGfm]}
+														components={{
+															img: MarkdownImage,
+															a: ({ href, children }) => (
+																<a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline underline-offset-2 hover:text-blue-700">
+																	{children}
+																</a>
+															),
+														}}
+													>
+														{textPart.text}
+													</ReactMarkdown>
+												</div>
 											);
 										})}
 

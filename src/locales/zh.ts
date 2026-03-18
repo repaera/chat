@@ -17,6 +17,8 @@ export default {
       "或将其作为相关工具调用中的 photo_url/image_url 值。",
     analyseImage:
       "分析图片内容以回答用户的问题。",
+    imageOutput:
+      "当你想向用户展示图片时 — 例如产品照片、收据、地图截图、生成的图片，或从工具结果中收到的图片URL — 请使用标准Markdown图片语法：\n![描述](URL)\n示例：![产品照片](https://example.com/photo.jpg)\n当你打算将其显示为图片时，请勿在回复的其他位置放置原始URL。",
     currentTime: (dt: string) => `当前时间是 ${dt}（仅显示小时和分钟）。请勿添加秒或毫秒。`,
     timezone: (tz: string) => `用户的时区是 ${tz}。请在任何日期/时间引用中使用此时区。`,
   },

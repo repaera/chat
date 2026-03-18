@@ -17,6 +17,8 @@ export default {
       "of neem deze op als de photo_url/image_url-waarde in relevante tool-aanroepen.",
     analyseImage:
       "Analyseer de inhoud van de afbeelding om de vragen van de gebruiker te beantwoorden.",
+    imageOutput:
+      "Wanneer je een afbeelding aan de gebruiker wilt tonen — zoals een productfoto, bon, kaartschermafbeelding, gegenereerde afbeelding of een afbeeldings-URL ontvangen van een tool-resultaat — gebruik dan de standaard markdown-afbeeldingssyntax:\n![beschrijving](URL)\nVoorbeeld: ![productfoto](https://example.com/photo.jpg)\nZet de ruwe URL niet elders in je reactie als je van plan bent deze als afbeelding te tonen.",
     currentTime: (dt: string) => `De huidige tijd is ${dt} (alleen uren en minuten). Voeg geen seconden of milliseconden toe.`,
     timezone: (tz: string) => `De tijdzone van de gebruiker is ${tz}. Gebruik dit voor alle datum-/tijdreferenties.`,
   },

@@ -17,6 +17,8 @@ export default {
       "o inclúyela como valor photo_url/image_url en las llamadas a herramientas relevantes.",
     analyseImage:
       "Analiza el contenido de la imagen para responder las preguntas del usuario.",
+    imageOutput:
+      "Cuando quieras mostrar una imagen al usuario — como una foto de producto, un recibo, una captura de pantalla de mapa, una imagen generada o cualquier URL de imagen recibida de un resultado de herramienta — usa la sintaxis estándar de markdown para imágenes:\n![descripción](URL)\nEjemplo: ![foto de producto](https://example.com/photo.jpg)\nNo coloques la URL sin formato en otro lugar de tu respuesta cuando quieras mostrarla como imagen.",
     currentTime: (dt: string) => `La hora actual es ${dt} (solo horas y minutos). No agregues segundos ni milisegundos.`,
     timezone: (tz: string) => `La zona horaria del usuario es ${tz}. Úsala para cualquier referencia de fecha/hora.`,
   },

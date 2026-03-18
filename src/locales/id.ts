@@ -17,6 +17,8 @@ export default {
       "atau sertakan sebagai nilai photo_url/image_url di tool call yang relevan.",
     analyseImage:
       "Analisa isi gambar untuk menjawab pertanyaan user.",
+    imageOutput:
+      "Ketika kamu ingin menampilkan gambar kepada pengguna — seperti foto produk, struk, screenshot peta, gambar yang dihasilkan, atau URL gambar dari hasil tool — gunakan sintaks markdown standar:\n![deskripsi](URL)\nContoh: ![foto produk](https://example.com/photo.jpg)\nJangan letakkan URL mentah di tempat lain dalam responmu saat ingin menampilkannya sebagai gambar.",
     currentTime: (dt: string) => `Waktu saat ini adalah ${dt} (hanya jam dan menit). Jangan tambahkan detik.`,
     timezone: (tz: string) => `Zona waktu pengguna adalah ${tz}. Gunakan ini sebagai acuan untuk semua referensi tanggal dan waktu.`,
   },

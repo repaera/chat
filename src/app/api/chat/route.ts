@@ -27,6 +27,32 @@ import { resolveUserLocale } from "@/lib/locale";
 import { appConfig } from "@/lib/app-config";
 import { deleteFromR2 } from "@/lib/storage";
 
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function extractImageTags(text: string): { cleanedText: string; imageUrls: string[] } {
+  const MD_IMAGE_RE = /!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g;
+  const imageUrls: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = MD_IMAGE_RE.exec(text)) !== null) {
+    imageUrls.push(match[1].trim());
+  }
+  const cleanedText = text.replace(MD_IMAGE_RE, "").replace(/\n{3,}/g, "\n\n").trim();
+  return { cleanedText, imageUrls };
+}
+
+function detectMimeType(url: string): string {
+  const ext = url.split("?")[0].split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    avif: "image/avif",
+  };
+  return map[ext] ?? "image/jpeg";
+}
 
 export async function POST(req: Request) {
   // ── 1. Verify session ──────────────────────────────────────
@@ -328,6 +354,7 @@ export async function POST(req: Request) {
       t.system.imageUrlUsage,
       t.system.imageUrlToolHint,
       t.system.analyseImage,
+      t.system.imageOutput,
       ...(timezone ? [t.system.timezone(timezone)] : []),
       ...(currentTime ? [t.system.currentTime(currentTime)] : []),
     ].join("\n"),
@@ -386,11 +413,13 @@ export async function POST(req: Request) {
       const assistantMsg = finishedMessages[finishedMessages.length - 1];
       if (!assistantMsg || assistantMsg.role !== "assistant") return;
 
-      // Extract text from parts to be saved as plain text in DB
-      const assistantText = (assistantMsg.parts ?? [])
+      // Extract text from parts, then strip [image: url] tags before saving
+      const rawAssistantText = (assistantMsg.parts ?? [])
         .filter(isTextUIPart)
         .map((p) => p.text)
         .join("");
+
+      const { cleanedText, imageUrls } = extractImageTags(rawAssistantText);
 
       try {
         await db.message.create({
@@ -398,13 +427,29 @@ export async function POST(req: Request) {
             id: assistantMsg.id,
             conversationId: convId,
             role: "assistant",
-            content: assistantText,
+            content: cleanedText,
           },
         });
         await db.conversation.update({
           where: { id: convId },
           data: { updatedAt: new Date() },
         });
+
+        // Attach LLM-output images as Image records on the assistant message
+        if (imageUrls.length > 0) {
+          await db.image.createMany({
+            data: imageUrls.map((url) => ({
+              id: newId(),
+              url,
+              key: url,       // external URL — not an R2 object; DeleteObjects silently ignores missing keys
+              sizeBytes: 0,   // unknown for external images
+              userId,
+              messageId: assistantMsg.id,
+              mimeType: detectMimeType(url),
+              attachedAt: new Date(),
+            })),
+          });
+        }
 
         // Attach all images from the last user message to the messageId
         // so they are not considered orphans by the cleanup job

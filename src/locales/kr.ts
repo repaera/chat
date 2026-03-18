@@ -17,6 +17,8 @@ export default {
       "또는 관련 도구 호출에서 photo_url/image_url 값으로 포함시키세요.",
     analyseImage:
       "이미지 내용을 분석하여 사용자의 질문에 답변하세요.",
+    imageOutput:
+      "사용자에게 이미지를 표시하고 싶을 때 — 제품 사진, 영수증, 지도 스크린샷, 생성된 이미지 또는 도구 결과로 받은 이미지 URL 등 — 표준 마크다운 이미지 문법을 사용하세요:\n![설명](URL)\n예시: ![제품 사진](https://example.com/photo.jpg)\n이미지로 표시할 의도라면 응답의 다른 곳에 원시 URL을 넣지 마세요.",
     currentTime: (dt: string) => `현재 시간은 ${dt}입니다 (시간과 분만). 초를 추가하지 마세요.`,
     timezone: (tz: string) => `사용자의 시간대는 ${tz}입니다. 모든 날짜 및 시간 관련 응답에 이 시간대를 기준으로 사용하세요.`,
   },
