@@ -14,8 +14,9 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 
 - **MCP tool integration** — connects to one external MCP server via Streamable HTTP; choose either `MCP_URL` (any backend) or `MCP_APPS_URL` (TypeScript + embedded UI) — setting both is rejected at runtime
 - **Deployment customization** — app name, AI persona context, and locale strings are all configurable; one codebase, multiple deployments
-- **Streaming AI responses** — real-time LLM output with typing indicators
+- **Streaming AI responses** — real-time LLM output with typing indicators; assistant messages rendered as Markdown (tables, lists, code blocks, links)
 - **Image attachments** — attach images to messages; fetched server-side and sent as binary to the LLM
+- **LLM image output** — the assistant can embed images in responses using standard Markdown syntax (`![alt](url)`); images are rendered as square cards with skeleton lazy-loading and open full-size on click
 - **Location sharing** — v1: browser geolocation; v2: Google Places search + commute calculator with interactive map
 - **Conversation history** — persistent chat history with cursor-based pagination and infinite scroll
 - **Authentication** — email/password with email verification, password reset, email change, and Google OAuth
@@ -134,6 +135,10 @@ BETTER_AUTH_URL=http://localhost:3000
 # (priority: azure-openai → anthropic → openai → bedrock → vertex → fireworks → xai → azure-foundry → openrouter)
 
 # LLM_PROVIDER=openrouter                          # explicit selection (optional)
+# LLM_MAX_OUTPUT_TOKENS=2048                       # max tokens per response (default: 2048)
+# LLM_CONTEXT_WINDOW=30                            # max messages sent to LLM per turn (default: 30)
+# LLM_MAX_STEPS=5                                  # max agentic tool-call steps per turn (default: 5; increase for polling workflows e.g. Replicate)
+# MAX_TOOL_RESULT_CHARS=3000                        # truncate tool result strings above this length (default: 3000)
 
 # Azure OpenAI
 # AZURE_OPENAI_API_KEY=...
@@ -595,6 +600,7 @@ export default {
     imageUrlUsage: "...",
     imageUrlToolHint: "...",
     analyseImage: "...",
+    imageOutput: "...",
     currentTime: (dt: string) => `The current time is ${dt}.`,
     timezone: (tz: string) => `The user's timezone is ${tz}.`,
   },
