@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import * as Sentry from "@sentry/nextjs";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { Button } from "@/components/ui/button";
 
 // error.tsx and not-found.tsx are rendered outside the LocaleProvider tree by Next.js.
@@ -43,14 +44,13 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const [s, setS] = useState(STRINGS.en);
+  const [s] = useState(getStrings);
 
-  useEffect(() => {
-    setS(getStrings());
+  useMountEffect(() => {
     if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
       Sentry.captureException(error);
     }
-  }, [error]);
+  });
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center p-4">

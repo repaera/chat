@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import Typed from "typed.js";
 
 type Props = {
@@ -20,7 +21,7 @@ export function TypedText({ text, animate = true, typeSpeed = 20, className, onC
 
 	// Skip to completion when the user returns to the tab — browsers throttle
 	// setTimeout/setInterval in background tabs, stalling the animation.
-	useEffect(() => {
+	useMountEffect(() => {
 		const handleVisibilityChange = () => {
 			if (document.visibilityState === "visible" && typedRef.current) {
 				typedRef.current.destroy();
@@ -30,7 +31,7 @@ export function TypedText({ text, animate = true, typeSpeed = 20, className, onC
 		};
 		document.addEventListener("visibilitychange", handleVisibilityChange);
 		return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-	}, []);
+	});
 
 	useEffect(() => {
 		if (!animate || !elRef.current || !text) return;

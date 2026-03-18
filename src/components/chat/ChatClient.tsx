@@ -5,6 +5,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRef, useEffect, useState, useMemo, useCallback, useLayoutEffect } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { useImageHeartbeat } from "@/hooks/use-image-heartbeat";
 import { toast } from "sonner";
 import type { UIMessage } from "ai";
@@ -61,19 +62,6 @@ export default function ChatClient({
 
 	// Heartbeat every 15 minutes — prevent cleanup job from deleting images that are still pending
 	useImageHeartbeat(pendingImage?.imageId ?? null);
-
-	useEffect(() => {
-		if (activeConversationId === null) {
-			setMessages([]);
-			setPendingImage(null);
-			setHasMore(false);
-		} else if (!skipInitialFetchRef.current) {
-			setHasMore(true);
-		}
-
-		// Reset mount flag when switching conversations so scroll doesn't auto-trigger
-		isMountedRef.current = false;
-	}, [activeConversationId]);
 
 	// ── Transport ─────────────────────────────────────────────────────────────
 	// Memoized to avoid re-creation on every render — refs remain fresh
@@ -237,7 +225,7 @@ export default function ChatClient({
 	}, [messages]);
 
 	// IntersectionObserver — fires loadMoreMessages when topRef enters the viewport
-	useEffect(() => {
+	useMountEffect(() => {
 		const observer = new IntersectionObserver(
 			(entries) => {
 				if (entries[0].isIntersecting && observerStateRef.current.hasMore) {
@@ -252,10 +240,10 @@ export default function ChatClient({
 		);
 		if (topRef.current) observer.observe(topRef.current);
 		return () => observer.disconnect();
-	}, [loadMoreMessages]);
+	});
 
 	// ResizeObserver — auto-scroll during TypedText animation (Typed.js bypasses React state)
-	useEffect(() => {
+	useMountEffect(() => {
 		const container = scrollContainerRef.current;
 		if (!container) return;
 		const observer = new ResizeObserver(() => {
@@ -266,10 +254,10 @@ export default function ChatClient({
 		const inner = container.firstElementChild;
 		if (inner) observer.observe(inner);
 		return () => observer.disconnect();
-	}, []);
+	});
 
 	// Track whether user is near the bottom of the scroll container
-	useEffect(() => {
+	useMountEffect(() => {
 		const container = scrollContainerRef.current;
 		if (!container) return;
 		const onScroll = () => {
@@ -282,7 +270,7 @@ export default function ChatClient({
 		};
 		container.addEventListener("scroll", onScroll, { passive: true });
 		return () => container.removeEventListener("scroll", onScroll);
-	}, []);
+	});
 
 	// Auto-scroll to bottom — follows the cursor during streaming, respects user scroll position
 	useEffect(() => {

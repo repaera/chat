@@ -1,7 +1,8 @@
 // src/components/chat/PlaceSearchField.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { MapPin, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Suggestion } from "@/hooks/use-place-autocomplete";
@@ -35,13 +36,13 @@ export function PlaceSearchField({
 	const wrapRef = useRef<HTMLDivElement>(null);
 
 	// Close dropdown on outside click
-	useEffect(() => {
+	useMountEffect(() => {
 		const handler = (e: MouseEvent) => {
 			if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
 		};
 		document.addEventListener("mousedown", handler);
 		return () => document.removeEventListener("mousedown", handler);
-	}, []);
+	});
 
 	if (selected) {
 		return (

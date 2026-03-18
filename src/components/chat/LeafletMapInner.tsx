@@ -4,7 +4,8 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
 type MarkerConfig = {
@@ -32,7 +33,7 @@ export default function LeafletMapInner({ center, zoom, markers, fitBounds }: Pr
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef       = useRef<LeafletMap | null>(null);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     let cancelled = false;
 
@@ -95,8 +96,7 @@ export default function LeafletMapInner({ center, zoom, markers, fitBounds }: Pr
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   return (
     <>

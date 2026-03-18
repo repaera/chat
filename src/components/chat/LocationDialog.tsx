@@ -1,7 +1,7 @@
 // src/components/chat/LocationDialog.tsx
 "use client";
 
-import { useReducer, useEffect } from "react";
+import { useReducer } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -131,18 +131,6 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 	const originAC = usePlaceAutocomplete();
 	const destAC = usePlaceAutocomplete();
 
-	// Reset on close
-	useEffect(() => {
-		if (!open) {
-			setTimeout(() => {
-				dispatch({ type: "RESET" });
-				locAC.clear();
-				originAC.clear();
-				destAC.clear();
-			}, 200);
-		}
-	}, [open]);
-
 	// ── Confirm Location ─────────────────────────────────────────────────────
 	const handleConfirmLocation = async () => {
 		if (!loc.selected) return;
@@ -197,7 +185,17 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+		<Dialog open={open} onOpenChange={(v) => {
+			if (!v) {
+				onClose();
+				setTimeout(() => {
+					dispatch({ type: "RESET" });
+					locAC.clear();
+					originAC.clear();
+					destAC.clear();
+				}, 200);
+			}
+		}}>
 			<DialogContent className="max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:w-full max-sm:max-w-full max-sm:h-svh max-sm:rounded-none max-sm:content-start max-sm:data-[state=open]:slide-in-from-bottom-full max-sm:data-[state=closed]:slide-out-to-bottom-full max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=closed]:zoom-out-100 sm:max-w-md">
 				<DialogHeader className="text-left">
 					<DialogTitle>{ld.dialogTitle}</DialogTitle>

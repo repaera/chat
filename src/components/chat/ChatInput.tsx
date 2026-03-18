@@ -1,7 +1,7 @@
 // src/components/chat/ChatInput.tsx
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImageUploadButton } from "@/components/chat/ImageUploadButton";
 import { Plus, ArrowUp, MapPin, X } from "lucide-react";
@@ -53,13 +53,6 @@ export function ChatInput({
 }: Props) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [attachMenuOpen, setAttachMenuOpen] = useState(false);
-
-	// Reset textarea height when input is cleared after submit
-	useEffect(() => {
-		if (input === "" && textareaRef.current) {
-			textareaRef.current.style.height = "auto";
-		}
-	}, [input]);
 
 	const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
 		setInput(e.target.value);
@@ -138,7 +131,7 @@ export function ChatInput({
 					</div>
 				)}
 
-				<form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-0.5">
+				<form onSubmit={(e) => { e.preventDefault(); if (textareaRef.current) textareaRef.current.style.height = "auto"; onSubmit(); }} className="space-y-0.5">
 					<div>
 						<textarea
 							ref={textareaRef}

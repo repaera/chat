@@ -2,7 +2,7 @@
 
 // not-found.tsx is rendered outside the LocaleProvider by Next.js.
 // Same as error.tsx — read html[lang] from the DOM.
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -30,12 +30,10 @@ const STRINGS: Record<string, { title: string; description: string; backToChat: 
 };
 
 export default function NotFound() {
-  const [s, setS] = useState(STRINGS.en);
-
-  useEffect(() => {
+  const [s] = useState(() => {
     const lang = document.documentElement.lang?.split("-")[0] ?? "en";
-    setS(STRINGS[lang] ?? STRINGS.en);
-  }, []);
+    return STRINGS[lang] ?? STRINGS.en;
+  });
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center p-4">
