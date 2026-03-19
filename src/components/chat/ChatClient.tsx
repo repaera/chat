@@ -448,7 +448,7 @@ export default function ChatClient({
 				input={input}
 				setInput={setInput}
 				onSubmit={handleSubmit}
-				isLoading={isLoading}
+				isLoading={isLoading || isInitialLoading}
 				pendingImage={pendingImage}
 				onClearImage={() => {
 					if (pendingImage?.preview) URL.revokeObjectURL(pendingImage.preview);
