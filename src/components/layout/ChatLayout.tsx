@@ -37,6 +37,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -101,6 +102,7 @@ function AppSidebar({
 }) {
   const { t } = useLocale();
   const cl = t.chatLayout;
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -132,7 +134,14 @@ function AppSidebar({
               variant="outline"
               size="lg"
               className="w-full justify-start gap-2 text-sm text-neutral-600 hover:text-sidebar-foreground"
-              onClick={onNewChat}
+              onClick={() => {
+              if (isMobile) {
+                setOpenMobile(false);
+                setTimeout(() => onNewChat(), 320);
+              } else {
+                onNewChat();
+              }
+            }}
             >
               <Plus className="w-4 h-4" />
               {cl.newButton}
@@ -156,7 +165,14 @@ function AppSidebar({
                     <SidebarMenuItem key={conv.id} className="group/item">
                       <SidebarMenuButton
                         isActive={activeConversationId === conv.id}
-                        onClick={() => onSelectConversation(conv.id)}
+                        onClick={() => {
+                          if (isMobile) {
+                            setOpenMobile(false);
+                            setTimeout(() => onSelectConversation(conv.id), 320);
+                          } else {
+                            onSelectConversation(conv.id);
+                          }
+                        }}
                         className="min-w-0 flex-col items-start py-2.5 h-auto"
                       >
                         <p className="w-full truncate font-medium text-sidebar-foreground">
@@ -240,6 +256,7 @@ function AppSidebar({
               onClick={() => {
                 if (deleteTarget) onDeleteConversation(deleteTarget);
                 setDeleteTarget(null);
+                if (isMobile) setOpenMobile(false);
               }}
               className="bg-red-600 text-white hover:bg-red-700"
             >
