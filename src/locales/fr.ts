@@ -235,6 +235,11 @@ export default {
         uploadFailed: "Échec du téléchargement de l'image.",
         uploadFailedRetry: "Échec du téléchargement de l'image. Veuillez réessayer.",
       },
+      imageCrop: {
+        title: "Modifier l'image",
+        apply: "Appliquer",
+        cancel: "Annuler",
+      },
     },
     forgotPassword: {
       pageTitle: "Mot de passe oublié",

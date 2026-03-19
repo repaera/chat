@@ -235,6 +235,11 @@ export default {
         uploadFailed: 'Gagal mengupload gambar.',
         uploadFailedRetry: 'Gagal mengupload gambar. Coba lagi.',
       },
+      imageCrop: {
+        title: 'Edit Gambar',
+        apply: 'Terapkan',
+        cancel: 'Batal',
+      },
     },
     forgotPassword: {
       pageTitle: 'Lupa Password',

@@ -235,6 +235,11 @@ export default {
         uploadFailed: "Caricamento immagine non riuscito.",
         uploadFailedRetry: "Caricamento immagine non riuscito. Riprova.",
       },
+      imageCrop: {
+        title: "Modifica immagine",
+        apply: "Applica",
+        cancel: "Annulla",
+      },
     },
     forgotPassword: {
       pageTitle: "Password dimenticata",

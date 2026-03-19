@@ -234,6 +234,11 @@ export default {
         uploadFailed: '画像のアップロードに失敗しました。',
         uploadFailedRetry: '画像のアップロードに失敗しました。もう一度お試しください。',
       },
+      imageCrop: {
+        title: '画像を編集',
+        apply: '適用',
+        cancel: 'キャンセル',
+      },
     },
     forgotPassword: {
       pageTitle: 'パスワードをお忘れの方',

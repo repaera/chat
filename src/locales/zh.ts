@@ -235,6 +235,11 @@ export default {
         uploadFailed: "上传图片失败。",
         uploadFailedRetry: "上传图片失败，请重试。",
       },
+      imageCrop: {
+        title: "编辑图片",
+        apply: "应用",
+        cancel: "取消",
+      },
     },
     forgotPassword: {
       pageTitle: "忘记密码",

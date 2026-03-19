@@ -235,6 +235,11 @@ export default {
         uploadFailed: "Afbeelding uploaden mislukt.",
         uploadFailedRetry: "Afbeelding uploaden mislukt. Probeer het opnieuw.",
       },
+      imageCrop: {
+        title: "Afbeelding bewerken",
+        apply: "Toepassen",
+        cancel: "Annuleren",
+      },
     },
     forgotPassword: {
       pageTitle: "Wachtwoord vergeten",

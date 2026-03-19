@@ -235,6 +235,11 @@ export default {
         uploadFailed: "Bild konnte nicht hochgeladen werden.",
         uploadFailedRetry: "Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.",
       },
+      imageCrop: {
+        title: "Bild bearbeiten",
+        apply: "Anwenden",
+        cancel: "Abbrechen",
+      },
     },
     forgotPassword: {
       pageTitle: "Passwort vergessen",

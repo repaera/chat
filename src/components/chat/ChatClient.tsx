@@ -6,7 +6,6 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRef, useEffect, useState, useMemo, useCallback, useLayoutEffect } from "react";
 import { useMountEffect } from "@/hooks/use-mount-effect";
-import { useImageHeartbeat } from "@/hooks/use-image-heartbeat";
 import { toast } from "sonner";
 import type { UIMessage } from "ai";
 import { useLocale } from "@/components/providers/LocaleProvider";
@@ -59,9 +58,6 @@ export default function ChatClient({
 	const [isNearBottom, setIsNearBottom] = useState(true);
 	const isNearBottomRef = useRef(true);
 	const [hasUnread, setHasUnread] = useState(false);
-
-	// Heartbeat every 15 minutes — prevent cleanup job from deleting images that are still pending
-	useImageHeartbeat(pendingImage?.imageId ?? null);
 
 	// ── Transport ─────────────────────────────────────────────────────────────
 	// Memoized to avoid re-creation on every render — refs remain fresh
@@ -319,9 +315,13 @@ export default function ChatClient({
 		void sendMessage({ text });
 	};
 
+	const isSubmittingRef = useRef(false);
+
 	const handleSubmit = async () => {
 		if (!input.trim() && !pendingImage && !pendingLocation) return;
-		if (isLoading) return;
+		if (isLoading || isSubmittingRef.current) return;
+
+		isSubmittingRef.current = true;
 
 		const textToSubmit = input;
 		const imageToSend = pendingImage;
@@ -340,24 +340,36 @@ export default function ChatClient({
 
 		const parts: MessagePart[] = [];
 		if (textToSubmit.trim()) parts.push({ type: "text", text: textToSubmit });
-		if (imageToSend)
-			parts.push({ type: "file", mediaType: imageToSend.mimeType, url: imageToSend.url });
+
+		if (imageToSend) {
+			try {
+				const formData = new FormData();
+				formData.append("file", imageToSend.rawData, "image.jpg");
+				const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+				if (!uploadRes.ok) throw new Error("upload failed");
+				const { url } = await uploadRes.json() as { url: string };
+				parts.push({ type: "file", mediaType: imageToSend.mimeType, url });
+			} catch {
+				toast.error(t.imageUpload.errors.uploadFailedRetry);
+				isSubmittingRef.current = false;
+				return;
+			}
+		}
+
 		if (locationToSend) parts.push(locationToSend);
 
-		if (parts.length === 0) return;
+		if (parts.length === 0) {
+			isSubmittingRef.current = false;
+			return;
+		}
 
 		try {
 			await sendMessage(
 				{ parts } as any,
 				{ body: { conversationId: activeConversationIdRef.current } },
 			);
-		} catch (err: unknown) {
-			// Handle 410 Gone — image already expired by cleanup job
-			const errStatus = (err as { status?: number })?.status;
-			if (errStatus === 410) {
-				toast.error(cc.toasts.imageExpired, { duration: 5000 });
-				setPendingImage(null);
-			}
+		} finally {
+			isSubmittingRef.current = false;
 		}
 	};
 
@@ -449,6 +461,7 @@ export default function ChatClient({
 				cc={{
 					inputPlaceholder: cc.inputPlaceholder,
 					locationLabel: cc.locationLabel,
+					imageCrop: t.imageUpload.imageCrop,
 				}}
 			/>
 			<LocationDialog

@@ -4,22 +4,27 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImageUploadButton } from "@/components/chat/ImageUploadButton";
+import { ImageCropDialog } from "@/components/chat/ImageCropDialog";
+import { compressImage } from "@/lib/compress-image";
 import { Plus, ArrowUp, MapPin, X } from "lucide-react";
 import type { LocationAttachment } from "@/components/chat/location-types";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type PendingImage = {
-	url: string;
-	key: string;
-	imageId: string;
-	preview: string;
+	rawData: Blob;    // compressed — uploaded at submit time
+	preview: string;  // blob URL for local preview
 	mimeType: string;
 };
 
 type Locale = {
 	inputPlaceholder: string;
 	locationLabel: string;
+	imageCrop: {
+		title: string;
+		apply: string;
+		cancel: string;
+	};
 };
 
 type Props = {
@@ -53,6 +58,30 @@ export function ChatInput({
 }: Props) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+	const [rawForCrop, setRawForCrop] = useState<{ rawUrl: string; mimeType: string } | null>(null);
+
+	const handleFileReady = (raw: { rawUrl: string; mimeType: string }) => {
+		setRawForCrop(raw);
+		setAttachMenuOpen(false);
+	};
+
+	const handleCropConfirm = async (blob: Blob) => {
+		if (!rawForCrop) return;
+		const { rawUrl } = rawForCrop;
+		setRawForCrop(null); // close dialog immediately
+		try {
+			const compressed = await compressImage(new File([blob], "image.jpg", { type: "image/jpeg" }));
+			const preview = URL.createObjectURL(compressed);
+			onImageUploaded({ rawData: compressed, preview, mimeType: "image/jpeg" });
+		} finally {
+			URL.revokeObjectURL(rawUrl);
+		}
+	};
+
+	const handleCropCancel = () => {
+		if (rawForCrop) URL.revokeObjectURL(rawForCrop.rawUrl);
+		setRawForCrop(null);
+	};
 
 	const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
 		setInput(e.target.value);
@@ -77,6 +106,7 @@ export function ChatInput({
 	};
 
 	return (
+		<>
 		<div className="px-4 pb-6 pt-2 shrink-0 flex justify-center sticky bottom-0 bg-background backdrop-blur-md">
 			<div className="max-w-2xl w-full rounded-2xl shadow border border-border bg-background p-2.5">
 				{/* Pending image preview */}
@@ -162,10 +192,7 @@ export function ChatInput({
 									<div className="absolute bottom-full left-0 mb-2 z-20 flex flex-col gap-0.5 rounded-lg border border-border bg-background p-1 shadow-sm min-w-40">
 										<ImageUploadButton
 											asMenuItem
-											onUploaded={(result) => {
-												onImageUploaded(result);
-												setAttachMenuOpen(false);
-											}}
+											onFileReady={handleFileReady}
 											disabled={isLoading || !!pendingImage}
 										/>
 										<Button
@@ -206,5 +233,16 @@ export function ChatInput({
 				</form>
 			</div>
 		</div>
+
+		<ImageCropDialog
+			open={!!rawForCrop}
+			imageSrc={rawForCrop?.rawUrl ?? ""}
+			onClose={handleCropCancel}
+			onConfirm={handleCropConfirm}
+			title={cc.imageCrop.title}
+			applyLabel={cc.imageCrop.apply}
+			cancelLabel={cc.imageCrop.cancel}
+		/>
+		</>
 	);
 }

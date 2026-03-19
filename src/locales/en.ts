@@ -235,6 +235,11 @@ export default {
         uploadFailed: 'Failed to upload image.',
         uploadFailedRetry: 'Failed to upload image. Please try again.',
       },
+      imageCrop: {
+        title: 'Edit Image',
+        apply: 'Apply',
+        cancel: 'Cancel',
+      },
     },
     forgotPassword: {
       pageTitle: 'Forgot Password',

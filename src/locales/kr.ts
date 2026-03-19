@@ -234,6 +234,11 @@ export default {
         uploadFailed: '이미지 업로드에 실패했습니다.',
         uploadFailedRetry: '이미지 업로드에 실패했습니다. 다시 시도해주세요.',
       },
+      imageCrop: {
+        title: '이미지 편집',
+        apply: '적용',
+        cancel: '취소',
+      },
     },
     forgotPassword: {
       pageTitle: '비밀번호 찾기',
