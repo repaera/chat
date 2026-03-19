@@ -156,10 +156,10 @@ export default function ChatClient({
 				const fetched: UIMessage[] = data.messages ?? [];
 				isMountedRef.current = false; // reset so scroll effect knows this is the initial load
 				setMessages(fetched);
+				setIsInitialLoading(false);
 				if (fetched.length < 20) setHasMore(false);
 			})
-			.catch(() => {})
-			.finally(() => setIsInitialLoading(false));
+			.catch(() => setIsInitialLoading(false));
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeConversationId]);
 
