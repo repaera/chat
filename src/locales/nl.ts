@@ -221,7 +221,9 @@ export default {
         imageExpired: "Afbeelding verlopen — upload opnieuw.",
         geolocationUnsupported: "Uw browser ondersteunt geen geolocatie.",
         geolocationFailed: "Locatie ophalen mislukt. Zorg dat locatiemachtiging is ingeschakeld.",
+        weeklyLimitReached: "Je hebt je wekelijkse berichtenlimiet bereikt. Probeer het volgende week opnieuw.",
       },
+      quotaWarning: "Je hebt nog {n} berichten over deze week.",
     },
     imageUpload: {
       uploading: "Uploaden..",

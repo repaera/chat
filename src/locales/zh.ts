@@ -221,7 +221,9 @@ export default {
         imageExpired: "图片已过期——请重新上传。",
         geolocationUnsupported: "您的浏览器不支持地理位置功能。",
         geolocationFailed: "获取位置失败，请确保已启用位置权限。",
+        weeklyLimitReached: "您已达到每周消息限制，请下周再试。",
       },
+      quotaWarning: "本周还剩 {n} 条消息。",
     },
     imageUpload: {
       uploading: "上传中..",

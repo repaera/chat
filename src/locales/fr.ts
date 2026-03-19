@@ -221,7 +221,9 @@ export default {
         imageExpired: "Image expirée — veuillez la télécharger à nouveau.",
         geolocationUnsupported: "Votre navigateur ne prend pas en charge la géolocalisation.",
         geolocationFailed: "Échec de la récupération de la localisation. Assurez-vous que la permission de localisation est activée.",
+        weeklyLimitReached: "Vous avez atteint votre limite hebdomadaire de messages. Réessayez la semaine prochaine.",
       },
+      quotaWarning: "Il vous reste {n} messages cette semaine.",
     },
     imageUpload: {
       uploading: "Téléchargement..",

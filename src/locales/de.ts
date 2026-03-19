@@ -221,7 +221,9 @@ export default {
         imageExpired: "Bild abgelaufen — bitte erneut hochladen.",
         geolocationUnsupported: "Dein Browser unterstützt keine Geolokalisierung.",
         geolocationFailed: "Standort konnte nicht ermittelt werden. Stelle sicher, dass die Standortberechtigung aktiviert ist.",
+        weeklyLimitReached: "Du hast dein wöchentliches Nachrichtenlimit erreicht. Versuche es nächste Woche erneut.",
       },
+      quotaWarning: "Du hast noch {n} Nachrichten diese Woche.",
     },
     imageUpload: {
       uploading: "Wird hochgeladen..",

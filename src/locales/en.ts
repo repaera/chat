@@ -221,7 +221,9 @@ export default {
         imageExpired: 'Image expired — please upload again.',
         geolocationUnsupported: 'Your browser does not support geolocation.',
         geolocationFailed: 'Failed to get location. Make sure location permission is enabled.',
+        weeklyLimitReached: "You've reached your weekly message limit. Please try again next week.",
       },
+      quotaWarning: "You have {n} messages left this week.",
     },
     imageUpload: {
       uploading: 'Uploading..',

@@ -81,6 +81,28 @@ export async function POST(req: Request) {
     );
   }
 
+  // ── 2b. Weekly message quota (optional free tier) ────────────────
+  const weeklyLimit = process.env.WEEKLY_MESSAGE_LIMIT
+    ? parseInt(process.env.WEEKLY_MESSAGE_LIMIT, 10)
+    : 0;
+
+  if (weeklyLimit > 0) {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyCount = await db.message.count({
+      where: {
+        role: "user",
+        conversation: { userId },
+        createdAt: { gte: since },
+      },
+    });
+    if (weeklyCount >= weeklyLimit) {
+      return Response.json(
+        { error: "Weekly message limit reached. Please try again next week." },
+        { status: 429, headers: { "Retry-After": "604800" } }
+      );
+    }
+  }
+
   // ── 3. Parse & validate body ───────────────────────────────────
   const body = await req.json().catch(() => null);
   if (!body) {

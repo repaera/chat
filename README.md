@@ -15,7 +15,7 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 - **MCP tool integration** — connects to one external MCP server via Streamable HTTP; choose either `MCP_URL` (any backend) or `MCP_APPS_URL` (TypeScript + embedded UI) — setting both is rejected at runtime
 - **Deployment customization** — app name, AI persona context, and locale strings are all configurable; one codebase, multiple deployments
 - **Streaming AI responses** — real-time LLM output with typing indicators; assistant messages rendered as Markdown (tables, lists, code blocks, links)
-- **Image attachments** — attach images to messages; fetched server-side and sent as binary to the LLM
+- **Image attachments** — attach images to messages with a mandatory crop-before-send dialog; image is compressed and uploaded to R2 only at send time — no premature upload, no heartbeat needed
 - **LLM image output** — the assistant can embed images in responses using standard Markdown syntax (`![alt](url)`); images are rendered as square cards with skeleton lazy-loading and open full-size on click
 - **Location sharing** — v1: browser geolocation; v2: Google Places search + commute calculator with interactive map
 - **Conversation history** — persistent chat history with cursor-based pagination and infinite scroll
@@ -23,6 +23,7 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 - **Locale detection** — auto-detect user language from IP geolocation (IPinfo Lite) with Accept-Language fallback; user-overridable in Settings
 - **i18n system** — lightweight custom locale system covering both UI strings and AI system prompts (EN, ID, KR, JP, ES, ZH, DE, NL, FR, IT); no third-party i18n library required
 - **Link detection** — URLs in chat messages are automatically rendered as clickable links
+- **Weekly message limit** — optional per-user quota (`WEEKLY_MESSAGE_LIMIT`); amber warning banner appears when ≤ 10 messages remain; 429 blocks sending when exhausted
 - **Background jobs** — automatic cleanup of orphaned images and old conversations via Trigger.dev
 
 ---
@@ -227,6 +228,12 @@ TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 # Supports self-hosted Redis, AWS ElastiCache, Upstash, Redis Cloud, etc.
 # REDIS_URL=redis://localhost:6379
 # REDIS_URL=rediss://user:token@hostname:6380   # Upstash / TLS
+
+# ── Usage Limits (optional) ──────────────────────────────────────
+# Per-user weekly message quota — 7-day rolling window.
+# Recommended: 100 for general-purpose deployments (~14 msg/day, blocks abuse).
+# Set lower (e.g. 50) for cost-sensitive free tiers. 0 or unset = unlimited.
+# WEEKLY_MESSAGE_LIMIT=100
 ```
 
 > **Provider selection:** Set `LLM_PROVIDER` explicitly to choose a provider. If unset, the app auto-detects based on which API key is present. OpenRouter is the final fallback.
@@ -457,11 +464,11 @@ Images are uploaded server-side through `POST /api/upload`. When the LLM needs t
 
 **Orphan image lifecycle:**
 
-- Upload creates an `Image` record with `messageId: null`
-- While pending, a heartbeat refreshes `lastSeenAt` every **15 minutes**
-- On submit, `messageId` is set — the image is permanently attached
-- If never submitted, it is auto-deleted from R2 and DB after **1 hour**
-- If expired before submit, server returns `410 Gone` and the UI prompts re-upload
+- User selects image → mandatory crop dialog → compress → held in memory only (no upload yet)
+- On submit, the image is uploaded to R2 fresh — `Image` record created with `messageId: null`
+- Chat route validates the URL exists as an orphan, then `onFinish` sets `messageId` — permanently attached
+- No heartbeat needed during input — upload happens at the last possible moment
+- Hourly cleanup deletes any orphans older than 1 hour (handles edge cases: upload succeeded but tab closed before send)
 
 **MCP servers storing image URLs:** If an external MCP server saves R2 image URLs from this app into its own database, those links will break when the conversation is deleted (manually or by the daily cleanup job). Set `PRESERVE_IMAGES=true` to skip R2 object deletion — DB records are still removed but the R2 objects remain accessible. Note: storage grows indefinitely with this flag; use an R2 bucket lifecycle rule to expire objects if needed.
 

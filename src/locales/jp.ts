@@ -220,7 +220,9 @@ export default {
         imageExpired: '画像の有効期限が切れました — 再アップロードしてください。',
         geolocationUnsupported: 'お使いのブラウザは位置情報をサポートしていません。',
         geolocationFailed: '位置情報の取得に失敗しました。位置情報の許可を確認してください。',
+        weeklyLimitReached: "週間メッセージ上限に達しました。来週またお試しください。",
       },
+      quotaWarning: "今週残り{n}件のメッセージがあります。",
     },
     imageUpload: {
       uploading: 'アップロード中..',

@@ -129,6 +129,8 @@ for arg in "$@"; do
 			echo "    LLM_CONTEXT_WINDOW        max messages sent to LLM per turn (default: 30)"
 			echo "    LLM_MAX_STEPS             max agentic tool-call steps per turn (default: 5)"
 			echo "    MAX_TOOL_RESULT_CHARS     truncate tool results above this length (default: 3000)"
+			echo "    WEEKLY_MESSAGE_LIMIT      max messages per user per 7 days (default: 0 = unlimited)"
+			echo "                              Recommended: 100 for general-purpose deployments"
 			echo "    PRESERVE_IMAGES        true | unset (default: unset)"
 			echo "                              Skip R2 object deletion on conversation delete/cleanup."
 			echo "                              Use when an MCP server stores R2 image URLs externally."
@@ -438,6 +440,7 @@ collect_config_interactive() {
 	ask_opt LLM_CONTEXT_WINDOW    "Max messages sent to LLM per turn" "30"
 	ask_opt LLM_MAX_STEPS         "Max agentic tool-call steps per turn" "5"
 	ask_opt MAX_TOOL_RESULT_CHARS "Truncate tool results above this length (chars)" "3000"
+	ask_opt WEEKLY_MESSAGE_LIMIT  "Weekly message limit per user (0 = unlimited, recommended: 100)" "0"
 
 	echo ""
 	info "Analytics — press Enter to skip"
@@ -554,6 +557,7 @@ collect_config_silent() {
 	LLM_CONTEXT_WINDOW="${LLM_CONTEXT_WINDOW:-}"
 	LLM_MAX_STEPS="${LLM_MAX_STEPS:-}"
 	MAX_TOOL_RESULT_CHARS="${MAX_TOOL_RESULT_CHARS:-}"
+	WEEKLY_MESSAGE_LIMIT="${WEEKLY_MESSAGE_LIMIT:-}"
 	PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
 	USE_PREBUILT="${USE_PREBUILT:-true}"
 	APP_IMAGE="${APP_IMAGE:-ghcr.io/repaera/chat:latest}"
@@ -771,6 +775,7 @@ ${LLM_MAX_OUTPUT_TOKENS:+LLM_MAX_OUTPUT_TOKENS=${LLM_MAX_OUTPUT_TOKENS}}
 ${LLM_CONTEXT_WINDOW:+LLM_CONTEXT_WINDOW=${LLM_CONTEXT_WINDOW}}
 ${LLM_MAX_STEPS:+LLM_MAX_STEPS=${LLM_MAX_STEPS}}
 ${MAX_TOOL_RESULT_CHARS:+MAX_TOOL_RESULT_CHARS=${MAX_TOOL_RESULT_CHARS}}
+${WEEKLY_MESSAGE_LIMIT:+WEEKLY_MESSAGE_LIMIT=${WEEKLY_MESSAGE_LIMIT}}
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 ${GTM_ID:+NEXT_PUBLIC_GTM_ID=${GTM_ID}}

@@ -1,7 +1,7 @@
 "use client";
 import { appConfig } from "@/lib/app-config";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
@@ -44,7 +44,7 @@ import { toast } from "sonner";
 import ChatClient from "@/components/chat/ChatClient";
 import { TypedText } from "@/components/chat/TypedText";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { X, MoreHorizontal, Plus, LifeBuoy } from "lucide-react";
+import { X, MoreHorizontal, Plus, LifeBuoy, AlertTriangle } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -275,6 +275,21 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
 
   const queryClient = useQueryClient();
 
+  const [quota, setQuota] = useState<{ remaining: number; limit: number } | null>(null);
+  const fetchQuota = useCallback(async () => {
+    try {
+      const res = await fetch("/api/quota");
+      if (!res.ok) return;
+      const data = await res.json() as { unlimited?: boolean; remaining?: number; limit?: number };
+      if (data.unlimited) { setQuota(null); return; }
+      if (typeof data.remaining === "number" && typeof data.limit === "number") {
+        setQuota({ remaining: data.remaining, limit: data.limit });
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { void fetchQuota(); }, [fetchQuota]);
+
   const {
     data,
     isLoading: isLoadingConvos,
@@ -351,9 +366,17 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
     }
   };
 
+  const QUOTA_WARN_THRESHOLD = 10;
+
   return (
-    <div className="flex h-svh overflow-hidden bg-background">
-      <SidebarProvider defaultOpen={sidebarDefaultOpen}>
+    <div className="flex flex-col h-svh overflow-hidden bg-background">
+      {quota !== null && quota.remaining <= QUOTA_WARN_THRESHOLD && (
+        <div className="flex items-center gap-2 px-4 py-2 text-sm bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 shrink-0">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{t.chatClient.quotaWarning.replace("{n}", String(quota.remaining))}</span>
+        </div>
+      )}
+      <SidebarProvider defaultOpen={sidebarDefaultOpen} style={{ minHeight: 0 }} className="flex-1">
         <AppSidebar
           user={user}
           conversations={conversations}
@@ -412,6 +435,8 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
             key={chatKey}
             activeConversationId={currentId}
             skipInitialFetch={justCreated}
+            onQuotaUpdate={fetchQuota}
+            quotaRemaining={quota?.remaining ?? null}
             onConversationCreated={(newId, title) => {
               queryClient.setQueryData(
                 ["conversations"],

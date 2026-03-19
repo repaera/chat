@@ -220,7 +220,9 @@ export default {
         imageExpired: '이미지가 만료되었습니다 — 다시 업로드해주세요.',
         geolocationUnsupported: '브라우저가 위치 정보를 지원하지 않습니다.',
         geolocationFailed: '위치를 가져오지 못했습니다. 위치 권한을 확인하세요.',
+        weeklyLimitReached: "주간 메시지 한도에 도달했습니다. 다음 주에 다시 시도해주세요.",
       },
+      quotaWarning: "이번 주 메시지 {n}개 남았습니다.",
     },
     imageUpload: {
       uploading: '업로드 중..',

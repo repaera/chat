@@ -20,12 +20,16 @@ type Props = {
 	activeConversationId: string | null;
 	skipInitialFetch?: boolean;
 	onConversationCreated?: (id: string, title: string | null) => void;
+	onQuotaUpdate?: () => void;
+	quotaRemaining?: number | null;
 };
 
 export default function ChatClient({
 	activeConversationId,
 	skipInitialFetch = false,
 	onConversationCreated,
+	onQuotaUpdate,
+	quotaRemaining = null,
 }: Props) {
 	const { t } = useLocale();
 	const cc = t.chatClient;
@@ -320,6 +324,10 @@ export default function ChatClient({
 	const handleSubmit = async () => {
 		if (!input.trim() && !pendingImage && !pendingLocation) return;
 		if (isLoading || isSubmittingRef.current) return;
+		if (quotaRemaining !== null && quotaRemaining <= 0) {
+			toast.error(cc.toasts.weeklyLimitReached, { duration: 8000 });
+			return;
+		}
 
 		isSubmittingRef.current = true;
 
@@ -368,6 +376,13 @@ export default function ChatClient({
 				{ parts } as any,
 				{ body: { conversationId: activeConversationIdRef.current } },
 			);
+			onQuotaUpdate?.();
+		} catch (err: unknown) {
+			const errStatus = (err as { status?: number })?.status;
+			if (errStatus === 429) {
+				toast.error(cc.toasts.weeklyLimitReached, { duration: 8000 });
+				onQuotaUpdate?.();
+			}
 		} finally {
 			isSubmittingRef.current = false;
 		}

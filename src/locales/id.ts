@@ -221,7 +221,9 @@ export default {
         imageExpired: 'Gambar sudah kadaluarsa — silakan upload ulang.',
         geolocationUnsupported: 'Browser tidak mendukung geolocation.',
         geolocationFailed: 'Gagal mendapatkan lokasi. Pastikan izin lokasi diaktifkan.',
+        weeklyLimitReached: "Kamu sudah mencapai batas pesan mingguan. Coba lagi minggu depan.",
       },
+      quotaWarning: "{n} pesan tersisa minggu ini.",
     },
     imageUpload: {
       uploading: 'Tunggu..',
