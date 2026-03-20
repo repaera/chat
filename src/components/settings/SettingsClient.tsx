@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -22,17 +22,20 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy, Check, Unlink } from "lucide-react";
 
-type Section = "profile" | "security" | "account";
+type Section = "profile" | "security" | "account" | "links";
+
+type LinkStatus = { linked: boolean; handle: string };
 
 type Props = {
   user: { id: string; name: string; email: string; image: string | null; locale?: string | null };
   retentionDays: number;
   emailEnabled: boolean;
+  availablePlatforms: string[];
 };
 
-export default function SettingsClient({ user, retentionDays, emailEnabled }: Props) {
+export default function SettingsClient({ user, retentionDays, emailEnabled, availablePlatforms }: Props) {
   const { t } = useLocale();
   const s = t.settings;
 
@@ -45,6 +48,63 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
   const [saving, setSaving] = useState<null | "profile" | "email" | "locale" | "password">(null);
   const [emailSent, setEmailSent] = useState(false);
   const [locale, setLocale] = useState(user.locale ?? "");
+
+  // Links tab state
+  const [linksStatus, setLinksStatus] = useState<Record<string, LinkStatus> | null>(null);
+  const [generatedCodes, setGeneratedCodes] = useState<Record<string, { code: string; expiresAt: string }>>({});
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (section === "links" && !linksStatus) {
+      fetch("/api/link/status")
+        .then((r) => r.json())
+        .then((data: { links: Record<string, LinkStatus> }) => setLinksStatus(data.links))
+        .catch(() => {});
+    }
+  }, [section, linksStatus]);
+
+  const handleGenerateCode = async (platform: string) => {
+    setGenerating(platform);
+    try {
+      const res = await fetch("/api/link/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json() as { code: string; expiresAt: string };
+      setGeneratedCodes((prev) => ({ ...prev, [platform]: data }));
+      toast.success(s.linksCard.toasts.generated);
+    } catch {
+      toast.error(s.linksCard.toasts.error);
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleCopyCode = (platform: string, code: string) => {
+    navigator.clipboard.writeText(`/link ${code}`).then(() => {
+      setCopied(platform);
+      toast.success(s.linksCard.toasts.copied);
+      setTimeout(() => setCopied((p) => (p === platform ? null : p)), 2000);
+    }).catch(() => {});
+  };
+
+  const handleUnlink = async (platform: string) => {
+    setUnlinking(platform);
+    try {
+      await fetch(`/api/link/${platform}`, { method: "DELETE" });
+      setLinksStatus((prev) => prev ? { ...prev, [platform]: { linked: false, handle: "" } } : prev);
+      setGeneratedCodes((prev) => { const next = { ...prev }; delete next[platform]; return next; });
+      toast.success(s.linksCard.toasts.unlinked);
+    } catch {
+      toast.error(s.linksCard.toasts.error);
+    } finally {
+      setUnlinking(null);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setSaving("profile");
@@ -106,6 +166,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
     { key: "profile", label: s.tabProfile },
     { key: "security", label: s.tabSecurity },
     { key: "account", label: s.tabAccount, danger: false },
+    ...(availablePlatforms.length > 0 ? [{ key: "links" as const, label: s.tabLinks }] : []),
   ];
 
   return (
@@ -239,6 +300,89 @@ export default function SettingsClient({ user, retentionDays, emailEnabled }: Pr
               <Button onClick={handleChangePassword} disabled={saving === "password" || !currentPassword || !newPassword}>
                 {saving === "password" ? s.securityCard.submittingButton : s.securityCard.submitButton}
               </Button>
+            </div>
+          </div>
+        )}
+
+        {section === "links" && (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-base font-semibold">{s.linksCard.title}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{s.linksCard.description}</p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              {availablePlatforms.map((platform) => {
+                const status = linksStatus?.[platform];
+                const codeEntry = generatedCodes[platform];
+                const platformLabel = (s.linksCard.platforms as Record<string, string>)[platform] ?? platform;
+
+                return (
+                  <div key={platform} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{platformLabel}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {status?.linked
+                            ? `${s.linksCard.linkedAs} ${status.handle}`
+                            : s.linksCard.notLinked}
+                        </p>
+                      </div>
+                      {status?.linked ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" disabled={unlinking === platform}>
+                              <Unlink className="w-3 h-3 mr-1" />
+                              {s.linksCard.unlink}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{s.linksCard.unlinkConfirmTitle}</AlertDialogTitle>
+                              <AlertDialogDescription>{s.linksCard.unlinkConfirmDescription}</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{s.linksCard.unlinkConfirmCancel}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleUnlink(platform)}>{s.linksCard.unlinkConfirmDelete}</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleGenerateCode(platform)}
+                          disabled={generating === platform}
+                        >
+                          {generating === platform ? t.common.loading : s.linksCard.generateCode}
+                        </Button>
+                      )}
+                    </div>
+
+                    {codeEntry && !status?.linked && (
+                      <div className="bg-muted rounded-md p-3 space-y-2">
+                        <p className="text-xs text-muted-foreground">{s.linksCard.instruction}</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-sm font-mono bg-background border rounded px-2 py-1">
+                            /link {codeEntry.code}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyCode(platform, codeEntry.code)}
+                          >
+                            {copied === platform ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            <span className="ml-1 text-xs">{s.linksCard.copyCode}</span>
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{s.linksCard.codeExpiry}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

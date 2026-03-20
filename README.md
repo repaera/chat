@@ -25,6 +25,7 @@ A general-purpose AI chat interface powered by MCP. Connect any MCP server — d
 - **Link detection** — URLs in chat messages are automatically rendered as clickable links
 - **Weekly message limit** — optional per-user quota (`WEEKLY_MESSAGE_LIMIT`); amber warning banner appears when ≤ 10 messages remain; 429 blocks sending when exhausted
 - **Background jobs** — automatic cleanup of orphaned images and old conversations via Trigger.dev
+- **Multi-platform bots** — connect Telegram, WhatsApp, Slack, Teams, Google Chat, Discord, GitHub, and Linear via Chat SDK; each platform activates only when its ENV tokens are present; full LLM + MCP tool support on every platform (see [docs/chat-sdk.md](docs/chat-sdk.md))
 
 ---
 
@@ -234,6 +235,40 @@ TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 # Recommended: 100 for general-purpose deployments (~14 msg/day, blocks abuse).
 # Set lower (e.g. 50) for cost-sensitive free tiers. 0 or unset = unlimited.
 # WEEKLY_MESSAGE_LIMIT=100
+
+# ── Bot Platforms / Chat SDK (optional) ──────────────────────────
+# Each platform only activates when its required token(s) are present.
+# Full setup guide: docs/chat-sdk.md
+#
+# BOT_NAME=assistant                                  # bot display name
+# BOT_CONTEXT_WINDOW=15                               # messages loaded per turn (default: 15)
+# BOT_GROUP_CONVERSATION=per-user                     # per-user (default) | shared
+#
+# TELEGRAM_BOT_TOKEN=                                 # from @BotFather
+# TELEGRAM_GROUPS_ENABLED=true                        # allow @mentions in groups (optional)
+#
+# WHATSAPP_PHONE_NUMBER_ID=
+# WHATSAPP_ACCESS_TOKEN=
+# WHATSAPP_WEBHOOK_VERIFY_TOKEN=
+#
+# SLACK_BOT_TOKEN=xoxb-...
+# SLACK_SIGNING_SECRET=
+#
+# TEAMS_APP_ID=
+# TEAMS_APP_PASSWORD=
+#
+# GCHAT_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+#
+# DISCORD_BOT_TOKEN=
+# DISCORD_PUBLIC_KEY=
+# DISCORD_APPLICATION_ID=
+#
+# GITHUB_APP_ID=
+# GITHUB_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----...
+# GITHUB_WEBHOOK_SECRET=
+#
+# LINEAR_API_KEY=lin_api_...
+# LINEAR_WEBHOOK_SECRET=
 ```
 
 > **Provider selection:** Set `LLM_PROVIDER` explicitly to choose a provider. If unset, the app auto-detects based on which API key is present. OpenRouter is the final fallback.
@@ -706,6 +741,72 @@ MCP_JWT_SECRET=                     # openssl rand -hex 32
 If neither is set, chat works normally without tools.
 
 > **Transport:** The MCP server must support **Streamable HTTP** (MCP spec 2025-03-26). `route.ts` uses `type: "http"`.
+
+---
+
+### Bot Platforms (Chat SDK)
+
+The app supports multi-platform bots via the [Chat SDK](https://www.npmjs.com/package/chat) (`chat` npm package). Bots on Telegram, WhatsApp, Slack, Teams, Google Chat, Discord, GitHub, and Linear all share the same LLM pipeline, MCP tools, rate limits, and conversation history as the web UI.
+
+Each platform adapter is registered **only when its ENV tokens are present** — unused platforms add zero overhead.
+
+#### Webhook URL
+
+All platforms share a single dynamic route:
+
+```
+https://your-domain.com/api/webhooks/{platform}
+```
+
+Where `{platform}` is one of: `telegram`, `whatsapp`, `slack`, `teams`, `gchat`, `discord`, `github`, `linear`.
+
+#### Platform setup
+
+| Platform | Required ENV vars |
+|---|---|
+| Telegram | `TELEGRAM_BOT_TOKEN` |
+| WhatsApp | `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` |
+| Slack | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` |
+| Teams | `TEAMS_APP_ID`, `TEAMS_APP_PASSWORD` |
+| Google Chat | `GCHAT_SERVICE_ACCOUNT_KEY` (full JSON as single-line string) |
+| Discord | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID` |
+| GitHub | `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` |
+| Linear | `LINEAR_API_KEY`, `LINEAR_WEBHOOK_SECRET` |
+
+#### Optional bot configuration
+
+```env
+BOT_NAME=assistant                 # bot display name (default: assistant)
+BOT_CONTEXT_WINDOW=15              # messages loaded from DB per turn (default: 15)
+BOT_GROUP_CONVERSATION=per-user    # per-user (default) | shared — group conversation mode
+TELEGRAM_GROUPS_ENABLED=true       # allow @mentions in Telegram groups (optional)
+
+# Per-platform persona injected into the system prompt
+TELEGRAM_PERSONA_CONTEXT=food delivery service
+SLACK_PERSONA_CONTEXT=internal support agent for Acme Corp
+# Pattern: {PLATFORM_UPPERCASE}_PERSONA_CONTEXT
+```
+
+#### Account linking
+
+Users can link their bot account to their web account so conversations sync across both:
+
+1. Go to **Settings → Links** in the web app
+2. Click **Generate code** next to the desired platform
+3. Send `/link CODE` to the bot (code expires in 15 min)
+4. Prior bot-only conversations are reassigned to the web account automatically
+
+The **Links** tab is only visible in Settings when at least one bot adapter is configured.
+
+#### What bots support
+
+- Full LLM streaming with the same model configured for the web app
+- MCP tool calling (same `MCP_URL`/`MCP_APPS_URL`)
+- Image uploads — platform images downloaded and re-hosted on R2 for LLM access (requires R2 configured)
+- Location messages — Telegram location pins and WhatsApp location messages forwarded to LLM
+- Per-platform markdown formatting hints in the system prompt
+- Locale detection from platform signals (Telegram `language_code`, WhatsApp phone prefix)
+- Same rate limits and weekly quota as the web UI
 
 ---
 

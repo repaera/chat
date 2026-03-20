@@ -20,7 +20,22 @@ const nextConfig: NextConfig = {
   output: "standalone",
   ...(allowedDevOrigins.length > 0 && { allowedDevOrigins }),
 
-  // Custom Webpack block removed to avoid conflicts with Turbopack
+  // Chat SDK adapter packages are server-only and use require() conditionally.
+  // Marking them external prevents Turbopack from trying to bundle them at build
+  // time — they are resolved by Node.js at runtime instead.
+  serverExternalPackages: [
+    "chat",
+    "@chat-adapter/telegram",
+    "@chat-adapter/whatsapp",
+    "@chat-adapter/slack",
+    "@chat-adapter/teams",
+    "@chat-adapter/gchat",
+    "@chat-adapter/discord",
+    "@chat-adapter/github",
+    "@chat-adapter/linear",
+    "@chat-adapter/state-memory",
+    "@chat-adapter/state-redis",
+  ],
 
   experimental: {
     serverComponentsHmrCache: true,

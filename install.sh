@@ -146,6 +146,22 @@ for arg in "$@"; do
 			echo "    MCP_URL / MCP_TOKEN       OR  MCP_APPS_URL / MCP_APPS_TOKEN (not both)"
 			echo "    MCP_JWT_SECRET"
 			echo ""
+			echo "  Bot platforms (Chat SDK — each platform only activates when its key(s) are set):"
+			echo "    BOT_NAME                  display name for the bot user (default: assistant)"
+			echo "    BOT_CONTEXT_WINDOW        messages loaded from DB per turn (default: 15)"
+			echo "    BOT_GROUP_CONVERSATION    per-user (default) | shared"
+			echo "    TELEGRAM_BOT_TOKEN        Telegram bot token from @BotFather"
+			echo "    TELEGRAM_GROUPS_ENABLED   true | unset — allow @mentions in Telegram groups"
+			echo "    WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN / WHATSAPP_WEBHOOK_VERIFY_TOKEN"
+			echo "    SLACK_BOT_TOKEN / SLACK_SIGNING_SECRET"
+			echo "    TEAMS_APP_ID / TEAMS_APP_PASSWORD"
+			echo "    GCHAT_SERVICE_ACCOUNT_KEY (full service account JSON as single-line string)"
+			echo "    DISCORD_BOT_TOKEN / DISCORD_PUBLIC_KEY / DISCORD_APPLICATION_ID"
+			echo "    GITHUB_APP_ID / GITHUB_PRIVATE_KEY / GITHUB_WEBHOOK_SECRET"
+			echo "    LINEAR_API_KEY / LINEAR_WEBHOOK_SECRET"
+			echo "    {PLATFORM}_PERSONA_CONTEXT  per-platform system prompt injection"
+			echo "                              e.g. TELEGRAM_PERSONA_CONTEXT='food delivery service'"
+			echo ""
 			exit 0
 			;;
 	esac
@@ -401,6 +417,69 @@ collect_config_interactive() {
 	esac
 
 	echo ""
+	info "Bot platforms — Chat SDK (press Enter to skip all)"
+	echo "  Enables messaging bots on Telegram, WhatsApp, Slack, Teams, Google Chat,"
+	echo "  Discord, GitHub, and/or Linear. Each platform is independent — configure"
+	echo "  only the ones you need. Webhook URL: https://DOMAIN/api/webhooks/{platform}"
+	read -rp "  Configure any bot platform? [y/N]: " bot_choice </dev/tty
+	if [[ "${bot_choice,,}" == "y" ]]; then
+		ask_opt BOT_NAME             "Bot display name" "assistant"
+		ask_opt BOT_CONTEXT_WINDOW   "Message history loaded per turn" "15"
+		ask_opt BOT_GROUP_CONVERSATION "Group conversation mode (per-user | shared)" "per-user"
+
+		read -rp "  Enable Telegram? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask_sec TELEGRAM_BOT_TOKEN "Bot token (from @BotFather)"
+			read -rp "  Allow @mentions in Telegram groups? [y/N]: " tg </dev/tty
+			[[ "${tg,,}" == "y" ]] && TELEGRAM_GROUPS_ENABLED=true || TELEGRAM_GROUPS_ENABLED=""
+		fi
+
+		read -rp "  Enable WhatsApp? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask     WHATSAPP_PHONE_NUMBER_ID    "Phone Number ID"
+			ask_sec WHATSAPP_ACCESS_TOKEN       "Access Token"
+			ask_sec WHATSAPP_WEBHOOK_VERIFY_TOKEN "Webhook Verify Token"
+		fi
+
+		read -rp "  Enable Slack? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask_sec SLACK_BOT_TOKEN      "Bot Token (xoxb-...)"
+			ask_sec SLACK_SIGNING_SECRET "Signing Secret"
+		fi
+
+		read -rp "  Enable Microsoft Teams? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask     TEAMS_APP_ID       "App ID"
+			ask_sec TEAMS_APP_PASSWORD "App Password"
+		fi
+
+		read -rp "  Enable Google Chat? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask_sec GCHAT_SERVICE_ACCOUNT_KEY "Service account JSON (single-line string)"
+		fi
+
+		read -rp "  Enable Discord? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask_sec DISCORD_BOT_TOKEN       "Bot Token"
+			ask     DISCORD_PUBLIC_KEY      "Public Key"
+			ask     DISCORD_APPLICATION_ID  "Application ID"
+		fi
+
+		read -rp "  Enable GitHub? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask     GITHUB_APP_ID        "App ID"
+			ask_sec GITHUB_PRIVATE_KEY   "Private Key (PEM, single line)"
+			ask_sec GITHUB_WEBHOOK_SECRET "Webhook Secret"
+		fi
+
+		read -rp "  Enable Linear? [y/N]: " t </dev/tty
+		if [[ "${t,,}" == "y" ]]; then
+			ask_sec LINEAR_API_KEY        "API Key (lin_api_...)"
+			ask_sec LINEAR_WEBHOOK_SECRET "Webhook Secret"
+		fi
+	fi
+
+	echo ""
 	info "Branding — press Enter to skip / use defaults"
 	ask_opt APP_SHORT_NAME    "App short name (used in PWA launcher)" "${APP_NAME:-Chat}"
 	ask_opt APP_DESCRIPTION   "App description (browser tab / SEO meta)"
@@ -559,6 +638,28 @@ collect_config_silent() {
 	MAX_TOOL_RESULT_CHARS="${MAX_TOOL_RESULT_CHARS:-}"
 	WEEKLY_MESSAGE_LIMIT="${WEEKLY_MESSAGE_LIMIT:-}"
 	PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
+	# Bot platforms (Chat SDK)
+	BOT_NAME="${BOT_NAME:-}"
+	BOT_CONTEXT_WINDOW="${BOT_CONTEXT_WINDOW:-}"
+	BOT_GROUP_CONVERSATION="${BOT_GROUP_CONVERSATION:-}"
+	TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+	TELEGRAM_GROUPS_ENABLED="${TELEGRAM_GROUPS_ENABLED:-}"
+	WHATSAPP_PHONE_NUMBER_ID="${WHATSAPP_PHONE_NUMBER_ID:-}"
+	WHATSAPP_ACCESS_TOKEN="${WHATSAPP_ACCESS_TOKEN:-}"
+	WHATSAPP_WEBHOOK_VERIFY_TOKEN="${WHATSAPP_WEBHOOK_VERIFY_TOKEN:-}"
+	SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-}"
+	SLACK_SIGNING_SECRET="${SLACK_SIGNING_SECRET:-}"
+	TEAMS_APP_ID="${TEAMS_APP_ID:-}"
+	TEAMS_APP_PASSWORD="${TEAMS_APP_PASSWORD:-}"
+	GCHAT_SERVICE_ACCOUNT_KEY="${GCHAT_SERVICE_ACCOUNT_KEY:-}"
+	DISCORD_BOT_TOKEN="${DISCORD_BOT_TOKEN:-}"
+	DISCORD_PUBLIC_KEY="${DISCORD_PUBLIC_KEY:-}"
+	DISCORD_APPLICATION_ID="${DISCORD_APPLICATION_ID:-}"
+	GITHUB_APP_ID="${GITHUB_APP_ID:-}"
+	GITHUB_PRIVATE_KEY="${GITHUB_PRIVATE_KEY:-}"
+	GITHUB_WEBHOOK_SECRET="${GITHUB_WEBHOOK_SECRET:-}"
+	LINEAR_API_KEY="${LINEAR_API_KEY:-}"
+	LINEAR_WEBHOOK_SECRET="${LINEAR_WEBHOOK_SECRET:-}"
 	USE_PREBUILT="${USE_PREBUILT:-true}"
 	APP_IMAGE="${APP_IMAGE:-ghcr.io/repaera/chat:latest}"
 	# Analytics
@@ -776,6 +877,29 @@ ${LLM_CONTEXT_WINDOW:+LLM_CONTEXT_WINDOW=${LLM_CONTEXT_WINDOW}}
 ${LLM_MAX_STEPS:+LLM_MAX_STEPS=${LLM_MAX_STEPS}}
 ${MAX_TOOL_RESULT_CHARS:+MAX_TOOL_RESULT_CHARS=${MAX_TOOL_RESULT_CHARS}}
 ${WEEKLY_MESSAGE_LIMIT:+WEEKLY_MESSAGE_LIMIT=${WEEKLY_MESSAGE_LIMIT}}
+
+# ── Bot platforms (Chat SDK) ──────────────────────────────────────────────────
+${BOT_NAME:+BOT_NAME=${BOT_NAME}}
+${BOT_CONTEXT_WINDOW:+BOT_CONTEXT_WINDOW=${BOT_CONTEXT_WINDOW}}
+${BOT_GROUP_CONVERSATION:+BOT_GROUP_CONVERSATION=${BOT_GROUP_CONVERSATION}}
+${TELEGRAM_BOT_TOKEN:+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}}
+${TELEGRAM_GROUPS_ENABLED:+TELEGRAM_GROUPS_ENABLED=${TELEGRAM_GROUPS_ENABLED}}
+${WHATSAPP_PHONE_NUMBER_ID:+WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}}
+${WHATSAPP_ACCESS_TOKEN:+WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}}
+${WHATSAPP_WEBHOOK_VERIFY_TOKEN:+WHATSAPP_WEBHOOK_VERIFY_TOKEN=${WHATSAPP_WEBHOOK_VERIFY_TOKEN}}
+${SLACK_BOT_TOKEN:+SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}}
+${SLACK_SIGNING_SECRET:+SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}}
+${TEAMS_APP_ID:+TEAMS_APP_ID=${TEAMS_APP_ID}}
+${TEAMS_APP_PASSWORD:+TEAMS_APP_PASSWORD=${TEAMS_APP_PASSWORD}}
+${GCHAT_SERVICE_ACCOUNT_KEY:+GCHAT_SERVICE_ACCOUNT_KEY=${GCHAT_SERVICE_ACCOUNT_KEY}}
+${DISCORD_BOT_TOKEN:+DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}}
+${DISCORD_PUBLIC_KEY:+DISCORD_PUBLIC_KEY=${DISCORD_PUBLIC_KEY}}
+${DISCORD_APPLICATION_ID:+DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID}}
+${GITHUB_APP_ID:+GITHUB_APP_ID=${GITHUB_APP_ID}}
+${GITHUB_PRIVATE_KEY:+GITHUB_PRIVATE_KEY=${GITHUB_PRIVATE_KEY}}
+${GITHUB_WEBHOOK_SECRET:+GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}}
+${LINEAR_API_KEY:+LINEAR_API_KEY=${LINEAR_API_KEY}}
+${LINEAR_WEBHOOK_SECRET:+LINEAR_WEBHOOK_SECRET=${LINEAR_WEBHOOK_SECRET}}
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 ${GTM_ID:+NEXT_PUBLIC_GTM_ID=${GTM_ID}}

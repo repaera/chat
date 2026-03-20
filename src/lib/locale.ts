@@ -26,7 +26,7 @@ const LOCALE_MAP: Record<string, Locale> = { en, id, kr, jp, es, zh, de, nl, fr,
 
 // Map country code ISO 3166-1 alpha-2 → locale key
 // Add new entry if there is a new locale file in src/locales/
-const COUNTRY_TO_LOCALE: Record<string, string> = {
+export const COUNTRY_TO_LOCALE: Record<string, string> = {
   ID: "id", // Indonesia
   KR: "kr", // South Korea
   JP: "jp", // Japan
@@ -65,6 +65,20 @@ const COUNTRY_TO_LOCALE: Record<string, string> = {
   // US, GB, AU, CA, etc → no need to list, will fallback to "en"
 };
 
+// Map BCP 47 language tag → locale key (also used by bot platform locale detection)
+export const LANG_TO_LOCALE: Record<string, string> = {
+  id: "id",
+  ko: "kr",
+  ja: "jp",
+  es: "es",
+  zh: "zh",
+  de: "de",
+  nl: "nl",
+  fr: "fr",
+  it: "it",
+  en: "en",
+};
+
 // Map Accept-Language header value → locale key
 // Example header: "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7"
 function parseAcceptLanguage(header: string | null): string | null {
@@ -74,19 +88,7 @@ function parseAcceptLanguage(header: string | null): string | null {
   if (!primary) return null;
   // "id-id" → "id", "ko-kr" → "ko" → "kr" (special mapping)
   const lang = primary.split("-")[0];
-  const langToLocale: Record<string, string> = {
-    id: "id",
-    ko: "kr",
-    ja: "jp",
-    es: "es",
-    zh: "zh",
-    de: "de",
-    nl: "nl",
-    fr: "fr",
-    it: "it",
-    en: "en",
-  };
-  return langToLocale[lang] ?? null;
+  return LANG_TO_LOCALE[lang] ?? null;
 }
 
 // Detect locale from IP + Accept-Language header.
