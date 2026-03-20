@@ -361,7 +361,7 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
     toast.success(cl.toasts.deleteSuccess);
     if (currentId === id) {
       setCurrentId(null);
-      setChatKey("root");
+      setChatKey(`root-${Date.now()}`);
       window.history.replaceState({}, "", "/");
     }
   };
@@ -394,7 +394,7 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
           onNewChat={() => {
             setJustCreated(false);
             setCurrentId(null);
-            setChatKey("root");
+            setChatKey(`root-${Date.now()}`);
             window.history.pushState({}, "", "/");
           }}
         />
