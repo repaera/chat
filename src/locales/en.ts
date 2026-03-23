@@ -23,6 +23,12 @@ export default {
     timezone: (tz: string) => `The user's timezone is ${tz}. Use this for any date/time references.`,
   },
 
+  // ── Bot messages ───────────────────────────────────────────────
+  bot: {
+    linked: "Account linked! Your conversations are now synced with the web app.\n\nSend /newchat to start a fresh conversation.",
+    newchat: "New conversation started. What can I help you with?",
+  },
+
   // ── UI strings ─────────────────────────────────────────────────
   ui: {
     meta: {

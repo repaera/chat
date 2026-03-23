@@ -168,12 +168,21 @@ export async function findOrCreateConversation(
 
 	const existing = await db.conversation.findFirst({
 		where: { userId: ownerId, title: `bot:${threadId}` },
+		orderBy: { createdAt: "desc" },
 		select: { id: true },
 	});
 	if (existing) return existing.id;
 
 	const conv = await db.conversation.create({
 		data: { id: newId(), userId: ownerId, title: `bot:${threadId}` },
+	});
+	return conv.id;
+}
+
+// Always creates a new conversation for a bot thread (used by /newchat).
+export async function createNewBotConversation(userId: string, threadId: string): Promise<string> {
+	const conv = await db.conversation.create({
+		data: { id: newId(), userId, title: `bot:${threadId}` },
 	});
 	return conv.id;
 }

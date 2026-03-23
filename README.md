@@ -248,6 +248,7 @@ TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 # TELEGRAM_GROUPS_ENABLED=true                        # allow @mentions in groups (optional)
 #
 # WHATSAPP_PHONE_NUMBER_ID=
+# WHATSAPP_APP_SECRET=                                # from Meta App Settings → Basic
 # WHATSAPP_ACCESS_TOKEN=
 # WHATSAPP_WEBHOOK_VERIFY_TOKEN=
 #
@@ -762,16 +763,16 @@ Where `{platform}` is one of: `telegram`, `whatsapp`, `slack`, `teams`, `gchat`,
 
 #### Platform setup
 
-| Platform | Required ENV vars |
-|---|---|
-| Telegram | `TELEGRAM_BOT_TOKEN` |
-| WhatsApp | `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` |
-| Slack | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` |
-| Teams | `TEAMS_APP_ID`, `TEAMS_APP_PASSWORD` |
-| Google Chat | `GCHAT_SERVICE_ACCOUNT_KEY` (full JSON as single-line string) |
-| Discord | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID` |
-| GitHub | `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` |
-| Linear | `LINEAR_API_KEY`, `LINEAR_WEBHOOK_SECRET` |
+| Platform | Required ENV vars | Status |
+|---|---|---|
+| Telegram | `TELEGRAM_BOT_TOKEN` | Tested |
+| WhatsApp | `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Tested |
+| Slack | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` | Untested |
+| Teams | `TEAMS_APP_ID`, `TEAMS_APP_PASSWORD` | Untested |
+| Google Chat | `GCHAT_SERVICE_ACCOUNT_KEY` (full JSON as single-line string) | Untested |
+| Discord | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID` | Untested |
+| GitHub | `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` | Untested |
+| Linear | `LINEAR_API_KEY`, `LINEAR_WEBHOOK_SECRET` | Untested |
 
 #### Optional bot configuration
 

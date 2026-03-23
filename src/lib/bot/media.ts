@@ -27,6 +27,12 @@ const EXT_TO_MIME: Record<string, string> = {
 	webp: "image/webp",
 };
 
+// Helper that forces the exact public URL the web chat uses
+function buildPublicUrl(key: string): string {
+	const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, "") ?? "";
+	return `${base}/${key}`;
+}
+
 // Telegram: resolve file_id → download bytes → upload to R2.
 export async function downloadTelegramImage(
 	botToken: string,
@@ -53,7 +59,10 @@ export async function downloadTelegramImage(
 		const ext = filePath.split(".").pop()?.toLowerCase() ?? "jpg";
 		const mediaType = EXT_TO_MIME[ext] ?? "image/jpeg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
-		const url = await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType: mediaType });
+
+		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType: mediaType });
+		const url = buildPublicUrl(key);
+
 		return { url, mediaType, key };
 	} catch {
 		return null;
@@ -86,7 +95,10 @@ export async function downloadWhatsAppImage(
 
 		const ext = mimeType.split("/")[1] ?? "jpg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
-		const url = await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType: mimeType });
+
+		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType: mimeType });
+		const url = buildPublicUrl(key);
+
 		return { url, mediaType: mimeType, key };
 	} catch {
 		return null;
@@ -105,7 +117,10 @@ export async function downloadDiscordImage(
 		const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
 		const ext = contentType.split("/")[1]?.split(";")[0] ?? "jpg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
-		const url = await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType });
+
+		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType });
+		const url = buildPublicUrl(key);
+
 		return { url, mediaType: contentType, key };
 	} catch {
 		return null;
@@ -128,7 +143,10 @@ export async function downloadSlackImage(
 		const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
 		const ext = contentType.split("/")[1]?.split(";")[0] ?? "jpg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
-		const url = await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType });
+
+		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType });
+		const url = buildPublicUrl(key);
+
 		return { url, mediaType: contentType, key };
 	} catch {
 		return null;

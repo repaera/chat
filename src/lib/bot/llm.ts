@@ -1,6 +1,5 @@
 // src/lib/bot/llm.ts
 // Platform-agnostic LLM handler for bot platforms.
-// Mirrors /api/chat/route.ts logic but accepts userId instead of a Better Auth session.
 
 import "server-only";
 
@@ -32,18 +31,27 @@ export interface BotMessageOptions {
 	thread: Thread;
 }
 
-// Platform-specific markdown formatting hints injected into the system prompt.
+// ── Helper: fetch R2 image and convert to data URL (for actual vision) ──
+async function imageUrlToDataUrl(url: string, mediaType: string): Promise<string> {
+	const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+	if (!res.ok) throw new Error(`Failed to fetch image from R2: ${res.status}`);
+	const buffer = await res.arrayBuffer();
+	const base64 = Buffer.from(buffer).toString("base64");
+	return `data:${mediaType};base64,${base64}`;
+}
+
+// ── Platform hints ───────────────────────────────────────────────────────────
 const PLATFORM_HINTS: Record<BotPlatform, string> = {
 	telegram:
-		"You are responding via Telegram. Keep responses concise. Supported markdown: *bold*, _italic_, `code`, ```blocks```.",
+		"You are responding via Telegram. Keep responses concise and natural. Use simple Markdown: **bold**, _italic_, `code`.",
 	whatsapp:
-		"You are responding via WhatsApp. Keep responses concise. Only *bold* and _italic_ are supported. No headers or code blocks.",
-	slack: "You are responding via Slack. Supported markdown: *bold*, _italic_, `code`, ```blocks```.",
+		"You are responding via WhatsApp. Keep responses concise and natural. Only use *bold* and _italic_.",
+	slack: "You are responding via Slack. Keep responses concise and natural.",
 	teams: "You are responding via Microsoft Teams. Keep responses professional and concise.",
 	gchat: "You are responding via Google Chat. Keep responses concise.",
 	discord:
-		"You are responding via Discord. Supported markdown: **bold**, *italic*, `code`, ```blocks```.",
-	github: "You are responding via GitHub. GitHub Flavored Markdown is supported.",
+		"You are responding via Discord. Keep responses concise and natural.",
+	github: "You are responding via GitHub. Keep responses focused on the issue context.",
 	linear: "You are responding via Linear. Keep responses focused on the issue context.",
 };
 
@@ -74,14 +82,15 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		}
 	}
 
-	// ── 3. Load conversation history ───────────────────────────────────────────
+	// ── 3. Load conversation history – MOST RECENT 15 (fixed!) ─────────────────
 	const contextWindow = parseInt(process.env.BOT_CONTEXT_WINDOW ?? "15", 10);
-	const history = await db.message.findMany({
+	const recent = await db.message.findMany({
 		where: { conversationId },
-		orderBy: { createdAt: "asc" },
+		orderBy: { createdAt: "desc" },   // ← newest first
 		take: contextWindow,
 		select: { role: true, content: true },
 	});
+	const history = recent.reverse(); // now oldest → newest (correct order for LLM)
 
 	// ── 4. Resolve locale + user info ──────────────────────────────────────────
 	const userRecord = await db.user.findUnique({
@@ -133,18 +142,27 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		tools = { ...tools, ...ct };
 	}
 
-	// ── 6. Build messages ──────────────────────────────────────────────────────
+	// ── 6. Build messages (same as before – real URL + vision) ─────────────────
 	const hasImages = imageParts.length > 0;
 
 	type TextPart = { type: "text"; text: string };
-	type ImagePart2 = { type: "image"; image: string; mimeType: string };
-	const userContentParts: Array<TextPart | ImagePart2> = [];
+	type ImagePartAI = { type: "image"; image: string; mimeType: string };
+
+	const userContentParts: Array<TextPart | ImagePartAI> = [];
 
 	if (locationText) userContentParts.push({ type: "text", text: locationText });
+
 	for (const img of imageParts) {
-		userContentParts.push({ type: "text", text: `[image_url: ${img.url}]` });
-		userContentParts.push({ type: "image", image: img.url, mimeType: img.mediaType });
+		try {
+			userContentParts.push({ type: "text", text: `[image_url: ${img.url}]` });
+			const dataUrl = await imageUrlToDataUrl(img.url, img.mediaType);
+			userContentParts.push({ type: "image", image: dataUrl, mimeType: img.mediaType });
+		} catch (err) {
+			console.error("Image fetch for LLM failed", err);
+			userContentParts.push({ type: "text", text: `[Image could not be loaded for analysis]` });
+		}
 	}
+
 	if (userText) userContentParts.push({ type: "text", text: userText });
 	if (userContentParts.length === 0) userContentParts.push({ type: "text", text: "" });
 
@@ -162,7 +180,7 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		},
 	];
 
-	// ── 7. System prompt ───────────────────────────────────────────────────────
+	// ── 7. System prompt (clean + platform-aware) ──────────────────────────────
 	const platformContext = process.env[`${platform.toUpperCase()}_PERSONA_CONTEXT`];
 	const systemPrompt = [
 		t.system.persona(userName),
@@ -171,15 +189,8 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		t.system.helpWithTools,
 		t.system.tone,
 		t.system.proactiveTools,
-		...(hasImages
-			? [
-					t.system.imageUrlTag,
-					t.system.imageUrlUsage,
-					t.system.imageUrlToolHint,
-					t.system.analyseImage,
-					t.system.imageOutput,
-				]
-			: []),
+		"Always use standard Markdown: **bold**, *italic*, `code`, ```blocks```, lists, links.",
+		"Never output raw [image_url: ...] tags. If you want to share the image, use a clean Markdown link.",
 		PLATFORM_HINTS[platform],
 	].join("\n");
 
@@ -213,8 +224,6 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 	try {
 		await thread.post(result.fullStream);
 	} catch (err) {
-		// Empty stream: LLM produced no text (e.g. vision not supported, API error).
-		// Post a fallback so the user knows something went wrong.
 		const code = (err as { code?: string }).code;
 		if (code === "VALIDATION_ERROR") {
 			await thread.post("Sorry, I couldn't generate a response. Please try again.").catch(() => {});
@@ -253,7 +262,6 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 			data: { updatedAt: new Date(), ...(hasImages ? { hasImages: true } : {}) },
 		});
 
-		// Attach uploaded images to the user message so cleanup jobs skip them.
 		if (imageParts.length > 0) {
 			await db.image.createMany({
 				data: imageParts.map((img) => ({

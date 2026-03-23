@@ -18,7 +18,11 @@ export async function POST(request: Request, { params }: Params): Promise<Respon
 	const { platform } = await params;
 	const handler = getHandler(platform);
 	if (!handler) return new Response("Not found", { status: 404 });
-	return handler(request, { waitUntil: (task) => after(() => task) });
+	// FIX: after() receives the Promise directly, not a thunk wrapping it.
+	// The previous `after(() => task)` registered a callback that returned the
+	// already-running promise, causing the SDK's deferred work (sending replies,
+	// saving to DB) to be mis-scheduled and silently dropped.
+	return handler(request, { waitUntil: (task) => after(async () => { await task; }) });
 }
 
 // Some platforms (WhatsApp, Discord, Google Chat) send GET requests for webhook verification.

@@ -1,7 +1,6 @@
 // src/lib/bot.ts
 // Chat SDK instance. Adapters are initialized only when their ENV tokens are present.
 // State: Redis (if REDIS_URL set) or in-memory.
-// Import this module in webhook routes — it is a server-side singleton.
 
 import "server-only";
 
@@ -13,9 +12,11 @@ import { formatLocationForLLM } from "@/components/chat/location-types";
 import {
 	findOrCreateBotUser,
 	findOrCreateConversation,
+	createNewBotConversation,
 	detectPlatform,
 	type BotPlatform,
 } from "./bot/user";
+import { resolveUserLocale } from "@/lib/locale";
 import {
 	downloadTelegramImage,
 	downloadWhatsAppImage,
@@ -26,7 +27,6 @@ import {
 import { handleBotMessage, type ImagePart } from "./bot/llm";
 
 // ── State adapter ──────────────────────────────────────────────────────────────
-// Reuses REDIS_URL if already set for rate limiting — no extra config needed.
 const state = process.env.REDIS_URL
 	? await (async () => {
 			const { createRedisState } = await import("@chat-adapter/state-redis");
@@ -43,12 +43,14 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
 }
 
 if (
+	process.env.WHATSAPP_APP_SECRET &&
 	process.env.WHATSAPP_PHONE_NUMBER_ID &&
 	process.env.WHATSAPP_ACCESS_TOKEN &&
 	process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
 ) {
 	const { createWhatsAppAdapter } = await import("@chat-adapter/whatsapp");
 	adapters.whatsapp = createWhatsAppAdapter({
+		appSecret: process.env.WHATSAPP_APP_SECRET,
 		phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
 		accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
 		verifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
@@ -113,19 +115,22 @@ if (process.env.LINEAR_API_KEY && process.env.LINEAR_WEBHOOK_SECRET) {
 }
 
 // ── Bot instance ───────────────────────────────────────────────────────────────
-// Exported as null when no adapters are configured so webhook routes return 404.
 export const bot =
 	Object.keys(adapters).length > 0
-		? new Chat({ userName: process.env.BOT_NAME ?? "assistant", adapters, state, fallbackStreamingPlaceholderText: null })
+		? new Chat({
+				userName: process.env.BOT_NAME ?? "assistant",
+				adapters,
+				state,
+				fallbackStreamingPlaceholderText: null,
+				onLockConflict: "force", // prevents message drops during long LLM streaming
+		  })
 		: null;
 
 if (!bot) {
 	// Nothing to register — skip event handler setup.
-	// eslint-disable-next-line no-empty-function
 } else {
 	// ── Helpers ──────────────────────────────────────────────────────────────────
 
-	// Extract location text and download images from a platform message.
 	async function extractMessageData(
 		platform: BotPlatform,
 		message: Message,
@@ -137,9 +142,7 @@ if (!bot) {
 		const imageParts: ImagePart[] = [];
 
 		if (platform === "telegram") {
-			// message.raw IS the Telegram message object (not the update wrapper)
 			const msg = raw;
-			// Location pin
 			if (msg?.location) {
 				const loc = msg.location as { latitude: number; longitude: number; title?: string };
 				locationText = formatLocationForLLM({
@@ -149,7 +152,6 @@ if (!bot) {
 					label: loc.title ?? "Shared location",
 				});
 			}
-			// Photo array (largest = last element)
 			const photos = msg?.photo as Array<{ file_id: string }> | undefined;
 			if (photos?.length && process.env.TELEGRAM_BOT_TOKEN) {
 				const dl = await downloadTelegramImage(
@@ -160,10 +162,7 @@ if (!bot) {
 				if (dl) imageParts.push(dl);
 				else userText = `[User sent an image that could not be processed]\n${userText}`;
 			}
-			// Document (image file)
-			const doc = msg?.document as
-				| { file_id: string; mime_type?: string }
-				| undefined;
+			const doc = msg?.document as { file_id: string; mime_type?: string } | undefined;
 			if (doc?.mime_type?.startsWith("image/") && process.env.TELEGRAM_BOT_TOKEN) {
 				const dl = await downloadTelegramImage(
 					process.env.TELEGRAM_BOT_TOKEN,
@@ -176,9 +175,7 @@ if (!bot) {
 		}
 
 		if (platform === "whatsapp") {
-			// message.raw = { message: inbound, contact, phoneNumberId }
 			const msg = raw?.message as Record<string, unknown> | undefined;
-
 			if (msg?.type === "location") {
 				const loc = msg.location as {
 					latitude: number;
@@ -206,12 +203,8 @@ if (!bot) {
 		}
 
 		if (platform === "discord") {
-			// message.raw IS the Discord message data object — attachments at top level
 			const attachments = (
-				raw?.attachments as Array<{
-					url: string;
-					content_type?: string;
-				}>
+				raw?.attachments as Array<{ url: string; content_type?: string }>
 			) ?? [];
 			for (const att of attachments) {
 				if (att.content_type?.startsWith("image/")) {
@@ -230,7 +223,7 @@ if (!bot) {
 			) ?? [];
 			for (const file of files) {
 				if (file.mimetype?.startsWith("image/")) {
-					const dl: MediaDownload | null = await downloadSlackImage(
+					const dl = await downloadSlackImage(
 						file.url_private,
 						process.env.SLACK_BOT_TOKEN,
 						userId,
@@ -243,7 +236,6 @@ if (!bot) {
 		return { userText, locationText, imageParts };
 	}
 
-	// Handle the /link <CODE> command for account linking.
 	async function handleLinkCommand(
 		poster: { post: (text: string) => Promise<unknown> },
 		text: string,
@@ -268,7 +260,6 @@ if (!bot) {
 			return true;
 		}
 
-		// identifier format: "link:{platform}:{webUserId}"
 		const parts = verification.identifier.split(":");
 		const verPlatform = parts[1];
 		const webUserId = parts.slice(2).join(":");
@@ -278,7 +269,6 @@ if (!bot) {
 			return true;
 		}
 
-		// Find any existing bot account for this platform user
 		const existingBotAccount = await db.account.findFirst({
 			where: { providerId: platform, accountId: platformUserId },
 			select: { userId: true },
@@ -291,12 +281,10 @@ if (!bot) {
 				data: { userId: webUserId, updatedAt: new Date() },
 			});
 			if (oldUserId && oldUserId !== webUserId) {
-				// Reassign conversations from the synthetic user to the web user
 				await db.conversation.updateMany({
 					where: { userId: oldUserId },
 					data: { userId: webUserId },
 				});
-				// Delete the now-orphaned synthetic user
 				await db.user.delete({ where: { id: oldUserId } }).catch(() => {});
 			}
 		} else {
@@ -313,22 +301,31 @@ if (!bot) {
 		}
 
 		await db.verification.delete({ where: { id: verification.id } }).catch(() => {});
-		await poster.post("✅ Account linked! Your conversations are now synced with the web app.");
+		const linkedUser = await db.user.findUnique({ where: { id: webUserId }, select: { locale: true } });
+		const { t: userT } = await resolveUserLocale(linkedUser?.locale);
+		await poster.post(userT.bot.linked);
 		return true;
 	}
 
-	// Core message processor used by all handlers.
 	async function processMessage(thread: Thread, message: Message): Promise<void> {
 		const raw = message.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
 		const platformUserId = message.author.userId;
 		const displayName = message.author.fullName || platform;
 
-		// Handle /link command before anything else
 		const wasLink = await handleLinkCommand(thread, message.text, platform, platformUserId);
 		if (wasLink) return;
 
 		const userId = await findOrCreateBotUser(platform, platformUserId, displayName, raw);
+
+		if (message.text.trim() === "/newchat") {
+			await createNewBotConversation(userId, thread.id as string);
+			const newchatUser = await db.user.findUnique({ where: { id: userId }, select: { locale: true } });
+			const { t: userT } = await resolveUserLocale(newchatUser?.locale);
+			await thread.post(userT.bot.newchat);
+			return;
+		}
+
 		const conversationId = await findOrCreateConversation(userId, thread.id as string);
 		const { userText, locationText, imageParts } = await extractMessageData(
 			platform,
@@ -349,34 +346,39 @@ if (!bot) {
 
 	// ── Event handlers ───────────────────────────────────────────────────────────
 
-	// New DM in an unsubscribed thread — subscribe and handle.
 	bot.onDirectMessage(async (thread, message) => {
 		await thread.subscribe();
 		await processMessage(thread, message);
 	});
 
-	// @mention in a group/channel — check platform group toggle then subscribe.
 	bot.onNewMention(async (thread, message) => {
 		const raw = message.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
-
-		// Telegram groups require explicit opt-in via TELEGRAM_GROUPS_ENABLED
 		if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
-
 		await thread.subscribe();
 		await processMessage(thread, message);
 	});
 
-	// Follow-up message in an already-subscribed thread.
 	bot.onSubscribedMessage(async (thread, message) => {
 		await processMessage(thread, message);
 	});
 
-	// Slash command /link — also handled inline in processMessage for non-slash platforms.
 	bot.onSlashCommand(["/link"], async (event) => {
 		const raw = event.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
 		const platformUserId = event.user.userId;
 		await handleLinkCommand(event.channel, `/link ${event.text}`, platform, platformUserId);
+	});
+
+	bot.onSlashCommand(["/newchat"], async (event) => {
+		const raw = event.raw as Record<string, unknown>;
+		const platform = detectPlatform(raw);
+		const platformUserId = event.user.userId;
+		const displayName = event.user.fullName || platform;
+		const userId = await findOrCreateBotUser(platform, platformUserId, displayName, raw);
+		await createNewBotConversation(userId, event.channel.id as string);
+		const newchatUser = await db.user.findUnique({ where: { id: userId }, select: { locale: true } });
+		const { t: userT } = await resolveUserLocale(newchatUser?.locale);
+		await event.channel.post(userT.bot.newchat);
 	});
 }

@@ -23,6 +23,12 @@ export default {
     timezone: (tz: string) => `Le fuseau horaire de l'utilisateur est ${tz}. Utilise-le pour toute référence de date/heure.`,
   },
 
+  // ── Bot messages ───────────────────────────────────────────────
+  bot: {
+    linked: "Compte lié ! Tes conversations sont maintenant synchronisées avec l'application web.\n\nEnvoie /newchat pour démarrer une nouvelle conversation.",
+    newchat: "Nouvelle conversation démarrée. Comment puis-je t'aider ?",
+  },
+
   // ── UI strings ─────────────────────────────────────────────────
   ui: {
     meta: {

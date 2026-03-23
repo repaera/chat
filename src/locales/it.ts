@@ -23,6 +23,12 @@ export default {
     timezone: (tz: string) => `Il fuso orario dell'utente è ${tz}. Usalo per qualsiasi riferimento a data/ora.`,
   },
 
+  // ── Bot messages ───────────────────────────────────────────────
+  bot: {
+    linked: "Account collegato! Le tue conversazioni sono ora sincronizzate con l'app web.\n\nInvia /newchat per iniziare una nuova conversazione.",
+    newchat: "Nuova conversazione avviata. Come posso aiutarti?",
+  },
+
   // ── UI strings ─────────────────────────────────────────────────
   ui: {
     meta: {
