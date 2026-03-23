@@ -63,7 +63,7 @@
     "leaflet": "^1.9.4",
     "linkify-react": "^4.3.2",
     "linkifyjs": "^4.3.2",
-    "lucide-react": "^0.576.0",
+    "lucide-react": "^1.0.1",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "nuqs": "^2.8.9",
