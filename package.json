@@ -43,7 +43,7 @@
     "@chat-adapter/whatsapp": "^4.20.2",
     "@hookform/resolvers": "^5.2.2",
     "@openrouter/ai-sdk-provider": "^2.3.1",
-    "@prisma/adapter-better-sqlite3": "^7.4.2",
+    "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/adapter-mariadb": "^7.5.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.4.2",
