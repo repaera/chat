@@ -30,6 +30,14 @@ export default async function SettingsPage() {
     .filter(([, check]) => check())
     .map(([platform]) => platform);
 
+  const botHandles: Record<string, string> = {};
+  if (process.env.TELEGRAM_BOT_USERNAME) {
+    botHandles.telegram = `@${process.env.TELEGRAM_BOT_USERNAME}`;
+  }
+  if (process.env.WHATSAPP_NUMBER) {
+    botHandles.whatsapp = process.env.WHATSAPP_NUMBER;
+  }
+
   return (
     <SettingsClient
       user={{
@@ -42,6 +50,7 @@ export default async function SettingsPage() {
       retentionDays={RETENTION_DAYS}
       emailEnabled={!!process.env.RESEND_API_KEY}
       availablePlatforms={availablePlatforms}
+      botHandles={botHandles}
     />
   );
 }

@@ -33,9 +33,10 @@ type Props = {
   retentionDays: number;
   emailEnabled: boolean;
   availablePlatforms: string[];
+  botHandles: Record<string, string>;
 };
 
-export default function SettingsClient({ user, retentionDays, emailEnabled, availablePlatforms }: Props) {
+export default function SettingsClient({ user, retentionDays, emailEnabled, availablePlatforms, botHandles }: Props) {
   const { t } = useLocale();
   const s = t.settings;
 
@@ -363,7 +364,12 @@ export default function SettingsClient({ user, retentionDays, emailEnabled, avai
 
                     {codeEntry && !status?.linked && (
                       <div className="bg-muted rounded-md p-3 space-y-2">
-                        <p className="text-xs text-muted-foreground">{s.linksCard.instruction}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {s.linksCard.instruction}
+                          {botHandles[platform] && (
+                            <span className="ml-1 font-medium text-foreground">{botHandles[platform]}</span>
+                          )}
+                        </p>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 text-sm font-mono bg-background border rounded px-2 py-1">
                             /link {codeEntry.code}
