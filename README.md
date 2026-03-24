@@ -245,12 +245,15 @@ TRIGGER_SECRET_KEY=tr_dev_...                      # * required
 # BOT_GROUP_CONVERSATION=per-user                     # per-user (default) | shared
 #
 # TELEGRAM_BOT_TOKEN=                                 # from @BotFather
+# TELEGRAM_BOT_USERNAME=                              # bot username without @ (optional, auto-detected via getMe)
 # TELEGRAM_GROUPS_ENABLED=true                        # allow @mentions in groups (optional)
 #
 # WHATSAPP_PHONE_NUMBER_ID=
 # WHATSAPP_APP_SECRET=                                # from Meta App Settings → Basic
 # WHATSAPP_ACCESS_TOKEN=
 # WHATSAPP_WEBHOOK_VERIFY_TOKEN=
+# WHATSAPP_WABA_ID=                                   # WhatsApp Business Account ID (required for messages to reach webhook)
+# WHATSAPP_NUMBER=                                    # business phone number shown to users in Settings (e.g. +1234567890)
 #
 # SLACK_BOT_TOKEN=xoxb-...
 # SLACK_SIGNING_SECRET=
@@ -773,6 +776,49 @@ Where `{platform}` is one of: `telegram`, `whatsapp`, `slack`, `teams`, `gchat`,
 | Discord | `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID` | Untested |
 | GitHub | `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` | Untested |
 | Linear | `LINEAR_API_KEY`, `LINEAR_WEBHOOK_SECRET` | Untested |
+
+#### Webhook setup scripts
+
+The `scripts/` directory contains helper scripts to register webhooks and verify your setup.
+
+**Telegram** — registers the webhook with Telegram's API and verifies the response:
+
+```bash
+# Required in .env.local:
+#   TELEGRAM_BOT_TOKEN=<from @BotFather>
+#   TELEGRAM_WEBHOOK_URL=https://your-domain.com/api/webhooks/telegram
+#
+# Optional:
+#   TELEGRAM_BOT_USERNAME=<bot username without @>  # auto-detected via getMe if omitted
+
+bash scripts/setup-telegram-webhook.sh
+```
+
+What the script does:
+1. Loads `.env.local` / `.env` from the project root
+2. Calls `setWebhook` with `allowed_updates: ["message"]`
+3. Fetches `getWebhookInfo` and prints the response
+
+For full setup details including group privacy mode configuration, see `docs/telegram-setup.md`.
+
+**WhatsApp** — validates your environment, tests the verification endpoint, and subscribes your app to the WABA:
+
+```bash
+# Required in .env.local:
+#   WHATSAPP_ACCESS_TOKEN=<from Meta Developer Console>
+#   WHATSAPP_PHONE_NUMBER_ID=<from Meta Developer Console>
+#   WHATSAPP_WEBHOOK_VERIFY_TOKEN=<your chosen token>
+#   WHATSAPP_WABA_ID=<WhatsApp Business Account ID>  # required for messages to reach your webhook
+
+bash scripts/setup-whatsapp-webhook.sh
+```
+
+What the script does:
+1. Validates required env vars
+2. Calls `POST /v21.0/{WABA_ID}/subscribed_apps` to subscribe your app to the WABA
+3. Prints the remaining manual steps required in the Meta Developer Portal
+
+> **Note:** The webhook callback URL must be registered manually in the Meta Developer Portal (WhatsApp → Configuration → Webhooks). The script handles the WABA subscription (the undocumented API step), but the portal registration cannot be automated.
 
 #### Optional bot configuration
 
