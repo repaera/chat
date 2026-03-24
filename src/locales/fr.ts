@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "Compte lié ! Tes conversations sont maintenant synchronisées avec l'application web.\n\nEnvoie /newchat pour démarrer une nouvelle conversation.",
+    linked: "Compte lié ! Tes conversations sont maintenant synchronisées avec l'application web.\n\nEnvoie /newchat pour démarrer une nouvelle conversation.\n\nActualise l'application web pour voir tes conversations synchronisées.",
     newchat: "Nouvelle conversation démarrée. Comment puis-je t'aider ?",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "Délier",
         codeExpiry: "Expire dans 15 minutes",
         codeExpired: "Code expiré",
+        refreshHint: "Après la liaison, actualise cette page pour voir tes conversations synchronisées.",
         instruction: "Envoyez cette commande au bot :",
         platforms: {
           telegram: "Telegram",

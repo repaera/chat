@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "Akun berhasil dihubungkan! Percakapanmu kini disinkronkan dengan aplikasi web.\n\nKirim /newchat untuk memulai percakapan baru.",
+    linked: "Akun berhasil dihubungkan! Percakapanmu kini disinkronkan dengan aplikasi web.\n\nKirim /newchat untuk memulai percakapan baru.\n\nSegarkan aplikasi web untuk melihat percakapan yang disinkronkan.",
     newchat: "Percakapan baru dimulai. Ada yang bisa dibantu?",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "Putus",
         codeExpiry: "Kedaluwarsa dalam 15 menit",
         codeExpired: "Kode kedaluwarsa",
+        refreshHint: "Setelah menghubungkan, segarkan halaman ini untuk melihat percakapan yang disinkronkan.",
         instruction: "Kirim perintah ini ke bot:",
         platforms: {
           telegram: "Telegram",

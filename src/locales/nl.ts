@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "Account gekoppeld! Je gesprekken worden nu gesynchroniseerd met de webapp.\n\nStuur /newchat om een nieuw gesprek te starten.",
+    linked: "Account gekoppeld! Je gesprekken worden nu gesynchroniseerd met de webapp.\n\nStuur /newchat om een nieuw gesprek te starten.\n\nVernieuw de webapp om je gesynchroniseerde gesprekken te zien.",
     newchat: "Nieuw gesprek gestart. Hoe kan ik je helpen?",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "Ontkoppelen",
         codeExpiry: "Verloopt over 15 minuten",
         codeExpired: "Code verlopen",
+        refreshHint: "Vernieuw deze pagina na het koppelen om je gesynchroniseerde gesprekken te zien.",
         instruction: "Stuur dit commando naar de bot:",
         platforms: {
           telegram: "Telegram",

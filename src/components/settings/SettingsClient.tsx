@@ -378,6 +378,7 @@ export default function SettingsClient({ user, retentionDays, emailEnabled, avai
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">{s.linksCard.codeExpiry}</p>
+                        <p className="text-xs text-muted-foreground/70">{s.linksCard.refreshHint}</p>
                       </div>
                     )}
                   </div>

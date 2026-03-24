@@ -194,7 +194,38 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		PLATFORM_HINTS[platform],
 	].join("\n");
 
-	// ── 8. Stream ──────────────────────────────────────────────────────────────
+	// ── 8. Persist user message + auto-title BEFORE streaming ─────────────────
+	const userMsgId = newId();
+	const storedUserContent = [locationText, userText].filter(Boolean).join("\n") || "(media)";
+
+	try {
+		await db.message.create({
+			data: { id: userMsgId, conversationId, role: "user", content: storedUserContent },
+		});
+	} catch (err) {
+		console.error("[bot] Failed to save user message:", err);
+		Sentry.captureException(err, { tags: { source: "db:bot:user-message" } });
+	}
+
+	if (userText.trim()) {
+		const conv = await db.conversation.findUnique({
+			where: { id: conversationId },
+			select: { title: true },
+		});
+		if (!conv?.title) {
+			const autoTitle = userText.slice(0, 80) + (userText.length > 80 ? "…" : "");
+			await db.conversation
+				.update({
+					where: { id: conversationId },
+					data: { title: autoTitle },
+				})
+				.catch((err) => {
+				console.error("[bot] Failed to auto-title conversation:", err);
+			});
+		}
+	}
+
+	// ── 9. Stream ──────────────────────────────────────────────────────────────
 	const result = streamText({
 		model: resolveModel(),
 		maxOutputTokens: process.env.LLM_MAX_OUTPUT_TOKENS
@@ -207,13 +238,7 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 			process.env.LLM_MAX_STEPS ? parseInt(process.env.LLM_MAX_STEPS, 10) : 5,
 		),
 		onError: ({ error }) => {
-			for (const c of mcpClients) {
-				void c
-					.close()
-					.catch((e) =>
-						Sentry.captureException(e, { tags: { source: "mcp:close:bot:onError" } }),
-					);
-			}
+			console.error("[bot] LLM error:", error instanceof Error ? error.message : error);
 			Sentry.captureException(error, {
 				tags: { source: "llm:bot", provider: process.env.LLM_PROVIDER ?? "auto", platform },
 				extra: { userId, conversationId },
@@ -228,7 +253,12 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		if (code === "VALIDATION_ERROR") {
 			await thread.post("Sorry, I couldn't generate a response. Please try again.").catch(() => {});
 		} else {
-			throw err;
+			// Log but don't rethrow — still persist whatever the LLM generated.
+			console.error("[bot] Platform delivery error:", err);
+			Sentry.captureException(err, {
+				tags: { source: "platform:bot:post", platform },
+				extra: { userId, conversationId },
+			});
 		}
 	}
 
@@ -237,24 +267,18 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 			c
 				.close()
 				.catch((e) =>
-					Sentry.captureException(e, { tags: { source: "mcp:close:bot:onFinish" } }),
+					Sentry.captureException(e, { tags: { source: "mcp:close:bot" } }),
 				),
 		),
 	);
 
-	// ── 9. Persist ─────────────────────────────────────────────────────────────
+	// ── 10. Persist assistant message ──────────────────────────────────────────
 	try {
 		const assistantText = await result.text;
-		const userMsgId = newId();
 		const assistantMsgId = newId();
-		const storedUserContent =
-			[locationText, userText].filter(Boolean).join("\n") || "(media)";
 
-		await db.message.createMany({
-			data: [
-				{ id: userMsgId, conversationId, role: "user", content: storedUserContent },
-				{ id: assistantMsgId, conversationId, role: "assistant", content: assistantText },
-			],
+		await db.message.create({
+			data: { id: assistantMsgId, conversationId, role: "assistant", content: assistantText },
 		});
 
 		await db.conversation.update({
@@ -277,6 +301,7 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 			});
 		}
 	} catch (err) {
-		Sentry.captureException(err, { tags: { source: "db:bot:persist" } });
+		console.error("[bot] Failed to save assistant message:", err);
+		Sentry.captureException(err, { tags: { source: "db:bot:assistant-message" } });
 	}
 }

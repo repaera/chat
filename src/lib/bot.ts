@@ -14,6 +14,7 @@ import {
 	findOrCreateConversation,
 	createNewBotConversation,
 	detectPlatform,
+	isGroupMessage,
 	type BotPlatform,
 } from "./bot/user";
 import { resolveUserLocale } from "@/lib/locale";
@@ -22,7 +23,6 @@ import {
 	downloadWhatsAppImage,
 	downloadDiscordImage,
 	downloadSlackImage,
-	type MediaDownload,
 } from "./bot/media";
 import { handleBotMessage, type ImagePart } from "./bot/llm";
 
@@ -313,20 +313,23 @@ if (!bot) {
 		const platformUserId = message.author.userId;
 		const displayName = message.author.fullName || platform;
 
+		const isGroup = isGroupMessage(platform, raw);
+
 		const wasLink = await handleLinkCommand(thread, message.text, platform, platformUserId);
 		if (wasLink) return;
 
 		const userId = await findOrCreateBotUser(platform, platformUserId, displayName, raw);
 
 		if (message.text.trim() === "/newchat") {
-			await createNewBotConversation(userId, thread.id as string);
+			console.log(`[bot:msg] /newchat from userId=${userId}`);
+			await createNewBotConversation(userId, platform, thread.id as string, isGroup);
 			const newchatUser = await db.user.findUnique({ where: { id: userId }, select: { locale: true } });
 			const { t: userT } = await resolveUserLocale(newchatUser?.locale);
 			await thread.post(userT.bot.newchat);
 			return;
 		}
 
-		const conversationId = await findOrCreateConversation(userId, thread.id as string);
+		const conversationId = await findOrCreateConversation(userId, platform, thread.id as string, isGroup);
 		const { userText, locationText, imageParts } = await extractMessageData(
 			platform,
 			message,
@@ -354,7 +357,7 @@ if (!bot) {
 	bot.onNewMention(async (thread, message) => {
 		const raw = message.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
-		if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
+if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
 		await thread.subscribe();
 		await processMessage(thread, message);
 	});
@@ -375,8 +378,9 @@ if (!bot) {
 		const platform = detectPlatform(raw);
 		const platformUserId = event.user.userId;
 		const displayName = event.user.fullName || platform;
+		const isGroup = isGroupMessage(platform, raw);
 		const userId = await findOrCreateBotUser(platform, platformUserId, displayName, raw);
-		await createNewBotConversation(userId, event.channel.id as string);
+		await createNewBotConversation(userId, platform, event.channel.id as string, isGroup);
 		const newchatUser = await db.user.findUnique({ where: { id: userId }, select: { locale: true } });
 		const { t: userT } = await resolveUserLocale(newchatUser?.locale);
 		await event.channel.post(userT.bot.newchat);

@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "Konto verknüpft! Deine Gespräche werden jetzt mit der Web-App synchronisiert.\n\nSende /newchat, um ein neues Gespräch zu starten.",
+    linked: "Konto verknüpft! Deine Gespräche werden jetzt mit der Web-App synchronisiert.\n\nSende /newchat, um ein neues Gespräch zu starten.\n\nAktualisiere die Web-App, um deine synchronisierten Gespräche zu sehen.",
     newchat: "Neues Gespräch gestartet. Wie kann ich dir helfen?",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "Aufheben",
         codeExpiry: "Läuft in 15 Minuten ab",
         codeExpired: "Code abgelaufen",
+        refreshHint: "Nach der Verknüpfung diese Seite aktualisieren, um synchronisierte Gespräche zu sehen.",
         instruction: "Sende diesen Befehl an den Bot:",
         platforms: {
           telegram: "Telegram",

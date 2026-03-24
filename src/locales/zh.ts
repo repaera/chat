@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "账号已关联！您的对话现已与网页应用同步。\n\n发送 /newchat 以开始新对话。",
+    linked: "账号已关联！您的对话现已与网页应用同步。\n\n发送 /newchat 以开始新对话。\n\n请刷新网页应用以查看您的同步对话。",
     newchat: "新对话已开始。有什么我可以帮您的吗？",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "取消关联",
         codeExpiry: "15分钟后过期",
         codeExpired: "验证码已过期",
+        refreshHint: "关联后，请刷新此页面以查看您的同步对话。",
         instruction: "将此命令发送给机器人：",
         platforms: {
           telegram: "Telegram",

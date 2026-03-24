@@ -67,6 +67,7 @@ export function detectBotLocale(platform: BotPlatform, raw: unknown): string {
 
 // Detect which platform a message came from based on message.raw (not the raw webhook payload).
 // Each adapter stores its own parsed message object in message.raw — see adapter source for details.
+// Also handles slash command event payloads, which have different structures than message payloads.
 export function detectPlatform(raw: unknown): BotPlatform {
 	const r = raw as Record<string, unknown>;
 	// WhatsApp: { message, contact, phoneNumberId }
@@ -79,13 +80,25 @@ export function detectPlatform(raw: unknown): BotPlatform {
 	if ((r?.message as Record<string, unknown>)?.sender !== undefined) return "gchat";
 	// Telegram: message object with message_id at top level
 	if (typeof r?.message_id === "number") return "telegram";
-	// Discord: message data with author.id
+	// Discord message: data with author.id
 	if ((r?.author as Record<string, unknown>)?.id !== undefined) return "discord";
-	// Slack: event with ts (Slack timestamp string)
+	// Discord slash command interaction: { application_id, type: 2, data: { name } }
+	if (typeof r?.application_id === "string" && r?.type === 2) return "discord";
+	// Slack message: event with ts (Slack timestamp string)
 	if (r?.ts !== undefined && r?.type !== undefined) return "slack";
+	// Slack slash command: { command, team_id, channel_id, user_id }
+	if (typeof r?.command === "string" && typeof r?.team_id === "string") return "slack";
 	// Teams: Graph API message with createdDateTime and from.user
 	if (r?.createdDateTime !== undefined && (r?.from as Record<string, unknown>)?.user !== undefined)
 		return "teams";
+	// Teams slash command / bot framework activity: { serviceUrl, channelId: "msteams" }
+	if (r?.serviceUrl !== undefined && r?.channelId === "msteams") return "teams";
+	// GChat slash command: { type: "MESSAGE", message: { slashCommand } }
+	if (
+		r?.type === "MESSAGE" &&
+		(r?.message as Record<string, unknown>)?.slashCommand !== undefined
+	)
+		return "gchat";
 	return "telegram";
 }
 
@@ -128,7 +141,6 @@ export async function findOrCreateBotUser(
 
 	const userId = newId();
 	const locale = detectBotLocale(platform, raw);
-
 	await db.$transaction([
 		db.user.create({
 			data: {
@@ -157,32 +169,60 @@ export async function findOrCreateBotUser(
 }
 
 // Find or create a Conversation for a bot user+thread pair.
-// BOT_GROUP_CONVERSATION=shared → all users in a group share one conversation.
+// BOT_GROUP_CONVERSATION=shared → group chats share one conversation per thread.
 // BOT_GROUP_CONVERSATION=per-user (default) → each user has their own.
+// DMs always use per-user mode regardless of the env var.
 export async function findOrCreateConversation(
 	userId: string,
+	platform: BotPlatform,
 	threadId: string,
+	isGroup = false,
 ): Promise<string> {
-	const isShared = process.env.BOT_GROUP_CONVERSATION === "shared";
+	const isShared = isGroup && process.env.BOT_GROUP_CONVERSATION === "shared";
 	const ownerId = isShared ? await findOrCreateGroupUser(threadId) : userId;
+	const botSource = `${platform}:${threadId}`;
 
 	const existing = await db.conversation.findFirst({
-		where: { userId: ownerId, title: `bot:${threadId}` },
-		orderBy: { createdAt: "desc" },
+		where: { userId: ownerId, botSource },
+		orderBy: [{ createdAt: "desc" }, { id: "desc" }],
 		select: { id: true },
 	});
 	if (existing) return existing.id;
 
+	// Legacy fallback: pre-fix conversations used title as routing key.
+	// Migrate on first encounter: set botSource, clear machine title so it
+	// gets auto-titled from the next user message.
+	const legacy = await db.conversation.findFirst({
+		where: { userId: ownerId, title: `bot:${threadId}`, botSource: null },
+		orderBy: { createdAt: "desc" },
+		select: { id: true },
+	});
+	if (legacy) {
+		await db.conversation.update({
+			where: { id: legacy.id },
+			data: { botSource, title: null },
+		});
+		return legacy.id;
+	}
+
 	const conv = await db.conversation.create({
-		data: { id: newId(), userId: ownerId, title: `bot:${threadId}` },
+		data: { id: newId(), userId: ownerId, botSource },
 	});
 	return conv.id;
 }
 
 // Always creates a new conversation for a bot thread (used by /newchat).
-export async function createNewBotConversation(userId: string, threadId: string): Promise<string> {
+export async function createNewBotConversation(
+	userId: string,
+	platform: BotPlatform,
+	threadId: string,
+	isGroup = false,
+): Promise<string> {
+	const isShared = isGroup && process.env.BOT_GROUP_CONVERSATION === "shared";
+	const ownerId = isShared ? await findOrCreateGroupUser(threadId) : userId;
+	const botSource = `${platform}:${threadId}`;
 	const conv = await db.conversation.create({
-		data: { id: newId(), userId, title: `bot:${threadId}` },
+		data: { id: newId(), userId: ownerId, botSource },
 	});
 	return conv.id;
 }

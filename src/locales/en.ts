@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "Account linked! Your conversations are now synced with the web app.\n\nSend /newchat to start a fresh conversation.",
+    linked: "Account linked! Your conversations are now synced with the web app.\n\nSend /newchat to start a fresh conversation.\n\nRefresh the web app to see your synced conversations.",
     newchat: "New conversation started. What can I help you with?",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "Unlink",
         codeExpiry: "Expires in 15 minutes",
         codeExpired: "Code expired",
+        refreshHint: "After linking, refresh this page to see your synced conversations.",
         instruction: "Send this command to the bot:",
         platforms: {
           telegram: "Telegram",

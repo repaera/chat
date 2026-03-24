@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "¡Cuenta vinculada! Tus conversaciones ahora están sincronizadas con la aplicación web.\n\nEnvía /newchat para iniciar una conversación nueva.",
+    linked: "¡Cuenta vinculada! Tus conversaciones ahora están sincronizadas con la aplicación web.\n\nEnvía /newchat para iniciar una conversación nueva.\n\nActualiza la aplicación web para ver tus conversaciones sincronizadas.",
     newchat: "Nueva conversación iniciada. ¿En qué puedo ayudarte?",
   },
 
@@ -194,6 +194,7 @@ export default {
         unlinkConfirmDelete: "Desvincular",
         codeExpiry: "Caduca en 15 minutos",
         codeExpired: "Código caducado",
+        refreshHint: "Después de vincular, actualiza esta página para ver tus conversaciones sincronizadas.",
         instruction: "Envía este comando al bot:",
         platforms: {
           telegram: "Telegram",

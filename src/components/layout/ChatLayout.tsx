@@ -313,6 +313,10 @@ export default function ChatLayout({ user, activeConversationId, sidebarDefaultO
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.conversations.at(-1)?.updatedAt.toISOString() : undefined,
+    // Poll every 10s so bot-originated conversations appear without a manual refresh.
+    // Only runs while the tab is focused — no background traffic.
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   });
 
   const conversations = useMemo(

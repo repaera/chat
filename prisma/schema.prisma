@@ -72,6 +72,7 @@ model Conversation {
   id        String    @id // UUID v7
   userId    String
   title     String?
+  botSource String?   // routing key for bot messages: "platform:threadId" — never shown in UI
   hasImages Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -79,6 +80,7 @@ model Conversation {
   messages  Message[]
 
   @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId, botSource])
 }
 
 model Message {

@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "アカウントが連携されました！会話はウェブアプリと同期されます。\n\n新しい会話を始めるには /newchat を送信してください。",
+    linked: "アカウントが連携されました！会話はウェブアプリと同期されます。\n\n新しい会話を始めるには /newchat を送信してください。\n\nウェブアプリを更新して、同期された会話を確認してください。",
     newchat: "新しい会話を開始しました。何かお手伝いできることはありますか？",
   },
 
@@ -193,6 +193,7 @@ export default {
         unlinkConfirmDelete: "連携解除",
         codeExpiry: "15分後に期限切れ",
         codeExpired: "コードの期限切れ",
+        refreshHint: "連携後、このページを更新して同期された会話を確認してください。",
         instruction: "ボットにこのコマンドを送信してください:",
         platforms: {
           telegram: "Telegram",

@@ -25,7 +25,7 @@ export default {
 
   // ── Bot messages ───────────────────────────────────────────────
   bot: {
-    linked: "계정이 연결되었습니다! 대화가 웹 앱과 동기화됩니다.\n\n새 대화를 시작하려면 /newchat을 보내세요.",
+    linked: "계정이 연결되었습니다! 대화가 웹 앱과 동기화됩니다.\n\n새 대화를 시작하려면 /newchat을 보내세요.\n\n동기화된 대화를 보려면 페이지를 새로 고침하세요.",
     newchat: "새 대화가 시작되었습니다. 무엇을 도와드릴까요?",
   },
 
@@ -193,6 +193,7 @@ export default {
         unlinkConfirmDelete: "연결 해제",
         codeExpiry: "15분 후 만료",
         codeExpired: "코드 만료됨",
+        refreshHint: "연결 후 이 페이지를 새로 고침하여 동기화된 대화를 확인하세요.",
         instruction: "봇에게 이 명령을 보내세요:",
         platforms: {
           telegram: "Telegram",

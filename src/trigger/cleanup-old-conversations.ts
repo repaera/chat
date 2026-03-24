@@ -6,11 +6,36 @@ import { deleteManyFromR2, isStorageConfigured } from "@/lib/storage";
 
 const RETENTION_DAYS = 30;
 
+// How long an empty bot conversation (e.g. created by /newchat with no follow-up)
+// must sit before it is pruned. 1 hour gives users time to send their first message.
+const EMPTY_BOT_CONV_TTL_MS = 60 * 60 * 1000;
+
 export const cleanupOldConversations = task({
   id: "cleanup-old-conversations",
   // concurrencyLimit is set via the queue — not a direct field on `task()`
   queue: { concurrencyLimit: 1 },
   run: async () => {
+    // ── Step 1: prune empty bot conversations ────────────────────────────────
+    // These are created by /newchat (or first-message routing) but never received
+    // a reply. They are hidden from the sidebar already; this just keeps the DB clean.
+    const emptyBotCutoff = new Date(Date.now() - EMPTY_BOT_CONV_TTL_MS);
+    const emptyBotConvs = await db.conversation.findMany({
+      where: {
+        botSource: { not: null },
+        messages: { none: {} },
+        createdAt: { lt: emptyBotCutoff },
+      },
+      select: { id: true },
+    });
+
+    if (emptyBotConvs.length > 0) {
+      await db.conversation.deleteMany({
+        where: { id: { in: emptyBotConvs.map((c) => c.id) } },
+      });
+      logger.log(`Pruned ${emptyBotConvs.length} empty bot conversation(s).`);
+    }
+
+    // ── Step 2: prune old conversations by retention window ──────────────────
     const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
     // Fetch conversations inactive for more than 30 days
