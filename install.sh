@@ -152,7 +152,10 @@ for arg in "$@"; do
 			echo "    BOT_GROUP_CONVERSATION    per-user (default) | shared"
 			echo "    TELEGRAM_BOT_TOKEN        Telegram bot token from @BotFather"
 			echo "    TELEGRAM_GROUPS_ENABLED   true | unset — allow @mentions in Telegram groups"
+			echo "    TELEGRAM_BOT_USERNAME     bot username without @ (optional, auto-detected via getMe)"
 			echo "    WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_APP_SECRET / WHATSAPP_ACCESS_TOKEN / WHATSAPP_WEBHOOK_VERIFY_TOKEN"
+			echo "    WHATSAPP_WABA_ID          WhatsApp Business Account ID (required for messages to reach webhook)"
+			echo "    WHATSAPP_NUMBER           WhatsApp business phone number shown to users (e.g. +1234567890)"
 			echo "    SLACK_BOT_TOKEN / SLACK_SIGNING_SECRET"
 			echo "    TEAMS_APP_ID / TEAMS_APP_PASSWORD"
 			echo "    GCHAT_SERVICE_ACCOUNT_KEY (full service account JSON as single-line string)"
@@ -432,6 +435,7 @@ collect_config_interactive() {
 			ask_sec TELEGRAM_BOT_TOKEN "Bot token (from @BotFather)"
 			read -rp "  Allow @mentions in Telegram groups? [y/N]: " tg </dev/tty
 			[[ "${tg,,}" == "y" ]] && TELEGRAM_GROUPS_ENABLED=true || TELEGRAM_GROUPS_ENABLED=""
+			ask_opt TELEGRAM_BOT_USERNAME "Bot username without @ (optional, auto-detected)"
 		fi
 
 		read -rp "  Enable WhatsApp? [y/N]: " t </dev/tty
@@ -440,6 +444,8 @@ collect_config_interactive() {
 			ask_sec WHATSAPP_APP_SECRET           "App Secret (from Meta App Settings → Basic)"
 			ask_sec WHATSAPP_ACCESS_TOKEN         "Access Token"
 			ask_sec WHATSAPP_WEBHOOK_VERIFY_TOKEN "Webhook Verify Token"
+			ask_opt WHATSAPP_WABA_ID             "WhatsApp Business Account ID (required for messages to reach webhook)"
+			ask_opt WHATSAPP_NUMBER              "WhatsApp business phone number (optional, shown to users, e.g. +1234567890)"
 		fi
 
 		read -rp "  Enable Slack? [y/N]: " t </dev/tty
@@ -645,10 +651,13 @@ collect_config_silent() {
 	BOT_GROUP_CONVERSATION="${BOT_GROUP_CONVERSATION:-}"
 	TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 	TELEGRAM_GROUPS_ENABLED="${TELEGRAM_GROUPS_ENABLED:-}"
+	TELEGRAM_BOT_USERNAME="${TELEGRAM_BOT_USERNAME:-}"
 	WHATSAPP_PHONE_NUMBER_ID="${WHATSAPP_PHONE_NUMBER_ID:-}"
 	WHATSAPP_APP_SECRET="${WHATSAPP_APP_SECRET:-}"
 	WHATSAPP_ACCESS_TOKEN="${WHATSAPP_ACCESS_TOKEN:-}"
 	WHATSAPP_WEBHOOK_VERIFY_TOKEN="${WHATSAPP_WEBHOOK_VERIFY_TOKEN:-}"
+	WHATSAPP_WABA_ID="${WHATSAPP_WABA_ID:-}"
+	WHATSAPP_NUMBER="${WHATSAPP_NUMBER:-}"
 	SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-}"
 	SLACK_SIGNING_SECRET="${SLACK_SIGNING_SECRET:-}"
 	TEAMS_APP_ID="${TEAMS_APP_ID:-}"
@@ -886,10 +895,13 @@ ${BOT_CONTEXT_WINDOW:+BOT_CONTEXT_WINDOW=${BOT_CONTEXT_WINDOW}}
 ${BOT_GROUP_CONVERSATION:+BOT_GROUP_CONVERSATION=${BOT_GROUP_CONVERSATION}}
 ${TELEGRAM_BOT_TOKEN:+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}}
 ${TELEGRAM_GROUPS_ENABLED:+TELEGRAM_GROUPS_ENABLED=${TELEGRAM_GROUPS_ENABLED}}
+${TELEGRAM_BOT_USERNAME:+TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}}
 ${WHATSAPP_PHONE_NUMBER_ID:+WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}}
 ${WHATSAPP_APP_SECRET:+WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}}
 ${WHATSAPP_ACCESS_TOKEN:+WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}}
 ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:+WHATSAPP_WEBHOOK_VERIFY_TOKEN=${WHATSAPP_WEBHOOK_VERIFY_TOKEN}}
+${WHATSAPP_WABA_ID:+WHATSAPP_WABA_ID=${WHATSAPP_WABA_ID}}
+${WHATSAPP_NUMBER:+WHATSAPP_NUMBER=${WHATSAPP_NUMBER}}
 ${SLACK_BOT_TOKEN:+SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}}
 ${SLACK_SIGNING_SECRET:+SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}}
 ${TEAMS_APP_ID:+TEAMS_APP_ID=${TEAMS_APP_ID}}
@@ -1313,6 +1325,16 @@ print_summary() {
 	echo -e "  ${BOLD}Deploy Trigger.dev tasks${NC} (run from your local machine after code changes):"
 	echo -e "    npx trigger.dev@latest deploy"
 	echo ""
+	if [[ -n "${TELEGRAM_BOT_TOKEN:-}" ]]; then
+		echo -e "  ${BOLD}Telegram webhook:${NC} register with"
+		echo -e "    bash ${INSTALL_DIR}/scripts/setup-telegram-webhook.sh"
+		echo ""
+	fi
+	if [[ -n "${WHATSAPP_ACCESS_TOKEN:-}" ]]; then
+		echo -e "  ${BOLD}WhatsApp webhook:${NC} subscribe WABA and test with"
+		echo -e "    bash ${INSTALL_DIR}/scripts/setup-whatsapp-webhook.sh"
+		echo ""
+	fi
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
