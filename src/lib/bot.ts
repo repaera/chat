@@ -122,7 +122,7 @@ export const bot =
 				adapters,
 				state,
 				fallbackStreamingPlaceholderText: null,
-				onLockConflict: "force", // prevents message drops during long LLM streaming
+				concurrency: "queue", // force messages queue
 		  })
 		: null;
 
