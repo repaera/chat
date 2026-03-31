@@ -91,6 +91,7 @@
 		"@biomejs/biome": "2.4.10",
 		"@playwright/test": "^1.58.2",
 		"@tailwindcss/postcss": "^4",
+		"@tailwindcss/typography": "^0.5.19",
 		"@trigger.dev/build": "4.4.3",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/node": "^20",

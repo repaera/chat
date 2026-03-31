@@ -368,7 +368,7 @@ export function MessageList({
 												return (
 													<div
 														key={`txt-${i}`}
-														className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:rounded-lg [&_code]:text-xs"
+														className="prose prose-sm prose-neutral max-w-none leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:rounded-lg [&_code]:text-xs"
 													>
 														<ReactMarkdown
 															remarkPlugins={[remarkGfm]}
@@ -385,8 +385,8 @@ export function MessageList({
 																	</a>
 																),
 																table: ({ children }) => (
-																	<div className="overflow-x-auto my-2">
-																		<table className="min-w-full border-collapse border border-border text-sm">
+																	<div className="overflow-x-auto my-2 w-full">
+																		<table className="w-full border-collapse border border-border text-sm">
 																			{children}
 																		</table>
 																	</div>
