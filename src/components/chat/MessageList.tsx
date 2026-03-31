@@ -287,7 +287,7 @@ export function MessageList({
                       ${
 												m.role === "user"
 													? "max-w-xs bg-muted text-foreground rounded-br-sm"
-													: "w-full bg-background border border-border text-foreground rounded-bl-sm"
+													: "w-full bg-background text-foreground"
 											}
                     `}
 									>
