@@ -49,7 +49,7 @@
 		"@prisma/adapter-better-sqlite3": "^7.5.0",
 		"@prisma/adapter-mariadb": "^7.5.0",
 		"@prisma/adapter-pg": "^7.5.0",
-		"@prisma/client": "^7.5.0",
+		"@prisma/client": "^7.6.0",
 		"@quail-ai/azure-ai-provider": "^2.0.0",
 		"@sentry/nextjs": "^10.42.0",
 		"@tanstack/react-query": "^5.90.21",
