@@ -91,7 +91,6 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
 async function resolvePlaceLatLng(
 	placeId: string,
 ): Promise<{ lat: number; lng: number }> {
-	// @ts-expect-error — Google Maps JS API loaded via script tag
 	const { Place } = await (window as any).google.maps.importLibrary("places");
 	const place = new Place({ id: placeId });
 	await place.fetchFields({ fields: ["location"] });

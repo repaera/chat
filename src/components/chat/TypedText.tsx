@@ -50,7 +50,7 @@ export function TypedText({
 			showCursor: true,
 			cursorChar: "▌",
 			contentType: "null",
-			onComplete(self) {
+			onComplete(self: Typed) {
 				self.cursor?.remove();
 				typedRef.current = null;
 				onCompleteRef.current?.();

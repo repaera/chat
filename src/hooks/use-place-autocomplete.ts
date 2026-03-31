@@ -23,7 +23,6 @@ export function usePlaceAutocomplete() {
 		debounceRef.current = setTimeout(async () => {
 			setLoading(true);
 			try {
-				// @ts-expect-error — Google Maps JS API loaded via script tag
 				const { AutocompleteSessionToken, AutocompleteSuggestion } = await (
 					window as any
 				).google.maps.importLibrary("places");
