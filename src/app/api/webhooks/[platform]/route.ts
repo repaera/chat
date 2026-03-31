@@ -10,11 +10,21 @@ type Params = { params: Promise<{ platform: string }> };
 
 function getHandler(platform: string) {
 	if (!bot) return null;
-	const webhooks = bot.webhooks as Record<string, ((req: Request, opts?: { waitUntil?: (p: Promise<unknown>) => void }) => Promise<Response>) | undefined>;
+	const webhooks = bot.webhooks as Record<
+		string,
+		| ((
+				req: Request,
+				opts?: { waitUntil?: (p: Promise<unknown>) => void },
+		  ) => Promise<Response>)
+		| undefined
+	>;
 	return webhooks[platform] ?? null;
 }
 
-export async function POST(request: Request, { params }: Params): Promise<Response> {
+export async function POST(
+	request: Request,
+	{ params }: Params,
+): Promise<Response> {
 	const { platform } = await params;
 	const handler = getHandler(platform);
 	if (!handler) return new Response("Not found", { status: 404 });
@@ -22,11 +32,19 @@ export async function POST(request: Request, { params }: Params): Promise<Respon
 	// The previous `after(() => task)` registered a callback that returned the
 	// already-running promise, causing the SDK's deferred work (sending replies,
 	// saving to DB) to be mis-scheduled and silently dropped.
-	return handler(request, { waitUntil: (task) => after(async () => { await task; }) });
+	return handler(request, {
+		waitUntil: (task) =>
+			after(async () => {
+				await task;
+			}),
+	});
 }
 
 // Some platforms (WhatsApp, Discord, Google Chat) send GET requests for webhook verification.
-export async function GET(request: Request, { params }: Params): Promise<Response> {
+export async function GET(
+	request: Request,
+	{ params }: Params,
+): Promise<Response> {
 	const { platform } = await params;
 	const handler = getHandler(platform);
 	if (!handler) return new Response("Not found", { status: 404 });

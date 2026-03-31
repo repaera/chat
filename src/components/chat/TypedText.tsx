@@ -2,8 +2,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useMountEffect } from "@/hooks/use-mount-effect";
 import Typed from "typed.js";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 type Props = {
 	text: string;
@@ -13,7 +13,13 @@ type Props = {
 	onComplete?: () => void;
 };
 
-export function TypedText({ text, animate = true, typeSpeed = 20, className, onComplete }: Props) {
+export function TypedText({
+	text,
+	animate = true,
+	typeSpeed = 20,
+	className,
+	onComplete,
+}: Props) {
 	const elRef = useRef<HTMLSpanElement>(null);
 	const typedRef = useRef<Typed | null>(null);
 	const onCompleteRef = useRef(onComplete);
@@ -30,7 +36,8 @@ export function TypedText({ text, animate = true, typeSpeed = 20, className, onC
 			}
 		};
 		document.addEventListener("visibilitychange", handleVisibilityChange);
-		return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+		return () =>
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
 	});
 
 	useEffect(() => {

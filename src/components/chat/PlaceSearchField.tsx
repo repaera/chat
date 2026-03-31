@@ -1,10 +1,10 @@
 // src/components/chat/PlaceSearchField.tsx
 "use client";
 
-import { useState, useRef } from "react";
-import { useMountEffect } from "@/hooks/use-mount-effect";
-import { MapPin, Loader2, X } from "lucide-react";
+import { Loader2, MapPin, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import type { Suggestion } from "@/hooks/use-place-autocomplete";
 
 type Props = {
@@ -38,7 +38,8 @@ export function PlaceSearchField({
 	// Close dropdown on outside click
 	useMountEffect(() => {
 		const handler = (e: MouseEvent) => {
-			if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+			if (wrapRef.current && !wrapRef.current.contains(e.target as Node))
+				setOpen(false);
 		};
 		document.addEventListener("mousedown", handler);
 		return () => document.removeEventListener("mousedown", handler);
@@ -49,9 +50,13 @@ export function PlaceSearchField({
 			<div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm w-full min-w-0">
 				<MapPin className="w-4 h-4 shrink-0 text-neutral-500" />
 				<div className="flex-1 min-w-0">
-					<p className="font-medium text-neutral-900 truncate">{selected.label}</p>
+					<p className="font-medium text-neutral-900 truncate">
+						{selected.label}
+					</p>
 					{selected.secondLine && (
-						<p className="text-xs text-neutral-400 truncate">{selected.secondLine}</p>
+						<p className="text-xs text-neutral-400 truncate">
+							{selected.secondLine}
+						</p>
 					)}
 				</div>
 				<button
@@ -88,10 +93,14 @@ export function PlaceSearchField({
 			{open && value.length >= 2 && (
 				<div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-200 bg-white shadow-lg max-h-52 overflow-y-auto">
 					{loading && (
-						<div className="px-3 py-2 text-xs text-neutral-400">{searchingLabel}</div>
+						<div className="px-3 py-2 text-xs text-neutral-400">
+							{searchingLabel}
+						</div>
 					)}
 					{!loading && suggestions.length === 0 && value.length >= 2 && (
-						<div className="px-3 py-2 text-xs text-neutral-400">{noResultsLabel}</div>
+						<div className="px-3 py-2 text-xs text-neutral-400">
+							{noResultsLabel}
+						</div>
 					)}
 					{suggestions.map((s) => (
 						<button
@@ -103,9 +112,13 @@ export function PlaceSearchField({
 								setOpen(false);
 							}}
 						>
-							<p className="text-sm font-medium text-neutral-900 truncate">{s.label}</p>
+							<p className="text-sm font-medium text-neutral-900 truncate">
+								{s.label}
+							</p>
 							{s.secondLine && (
-								<p className="text-xs text-neutral-400 truncate">{s.secondLine}</p>
+								<p className="text-xs text-neutral-400 truncate">
+									{s.secondLine}
+								</p>
 							)}
 						</button>
 					))}

@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import Cropper from "react-easy-crop";
+import { useCallback, useEffect, useState } from "react";
 import type { Area } from "react-easy-crop";
-import {
-	Dialog,
-	DialogContent,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import Cropper from "react-easy-crop";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cropImage } from "@/lib/crop-image";
 
 type Props = {
@@ -60,12 +56,23 @@ export function ImageCropDialog({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={(v) => { if (!v && !isProcessing) onClose(); }}>
+		<Dialog
+			open={open}
+			onOpenChange={(v) => {
+				if (!v && !isProcessing) onClose();
+			}}
+		>
 			<DialogContent className="max-w-sm w-[calc(100%-2rem)] gap-0 p-0 overflow-hidden [&>button]:hidden">
 				{/* Header: title left, cancel right — replaces the default close button */}
 				<div className="flex items-center justify-between px-4 py-2">
 					<DialogTitle>{title}</DialogTitle>
-					<Button variant="outline" size="sm" onClick={onClose} disabled={isProcessing} className="h-8 px-3 text-sm">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={onClose}
+						disabled={isProcessing}
+						className="h-8 px-3 text-sm"
+					>
 						{cancelLabel}
 					</Button>
 				</div>
@@ -82,7 +89,11 @@ export function ImageCropDialog({
 					/>
 				</div>
 				<div className="px-4 py-3">
-					<Button onClick={handleConfirm} disabled={isProcessing} className="w-full">
+					<Button
+						onClick={handleConfirm}
+						disabled={isProcessing}
+						className="w-full"
+					>
 						{applyLabel}
 					</Button>
 				</div>

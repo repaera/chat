@@ -1,19 +1,19 @@
 // src/components/chat/ChatInput.tsx
 "use client";
 
+import { ArrowUp, MapPin, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ImageUploadButton } from "@/components/chat/ImageUploadButton";
 import { ImageCropDialog } from "@/components/chat/ImageCropDialog";
-import { compressImage } from "@/lib/compress-image";
-import { Plus, ArrowUp, MapPin, X } from "lucide-react";
+import { ImageUploadButton } from "@/components/chat/ImageUploadButton";
 import type { LocationAttachment } from "@/components/chat/location-types";
+import { Button } from "@/components/ui/button";
+import { compressImage } from "@/lib/compress-image";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type PendingImage = {
-	rawData: Blob;    // compressed — uploaded at submit time
-	preview: string;  // blob URL for local preview
+	rawData: Blob; // compressed — uploaded at submit time
+	preview: string; // blob URL for local preview
 	mimeType: string;
 };
 
@@ -58,7 +58,10 @@ export function ChatInput({
 }: Props) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [attachMenuOpen, setAttachMenuOpen] = useState(false);
-	const [rawForCrop, setRawForCrop] = useState<{ rawUrl: string; mimeType: string } | null>(null);
+	const [rawForCrop, setRawForCrop] = useState<{
+		rawUrl: string;
+		mimeType: string;
+	} | null>(null);
 
 	const handleFileReady = (raw: { rawUrl: string; mimeType: string }) => {
 		setRawForCrop(raw);
@@ -70,7 +73,9 @@ export function ChatInput({
 		const { rawUrl } = rawForCrop;
 		setRawForCrop(null); // close dialog immediately
 		try {
-			const compressed = await compressImage(new File([blob], "image.jpg", { type: "image/jpeg" }));
+			const compressed = await compressImage(
+				new File([blob], "image.jpg", { type: "image/jpeg" }),
+			);
 			const preview = URL.createObjectURL(compressed);
 			onImageUploaded({ rawData: compressed, preview, mimeType: "image/jpeg" });
 		} finally {
@@ -93,7 +98,8 @@ export function ChatInput({
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		const isMobile =
-			typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+			typeof window !== "undefined" &&
+			window.matchMedia("(pointer: coarse)").matches;
 		if (e.key === "Enter" && !e.shiftKey && !isMobile) {
 			e.preventDefault();
 			onSubmit();
@@ -107,142 +113,153 @@ export function ChatInput({
 
 	return (
 		<>
-		<div className="px-4 pb-6 pt-2 shrink-0 flex justify-center sticky bottom-0 bg-background backdrop-blur-md">
-			<div className="max-w-2xl w-full rounded-2xl shadow border border-border bg-background p-2.5">
-				{/* Pending image preview */}
-				{pendingImage && (
-					<div className="flex items-center gap-2 px-0.5 pb-1.5">
-						<div className="relative w-14 h-14 shrink-0">
-							<img
-								src={pendingImage.preview}
-								alt="Preview"
-								className="w-14 h-14 rounded-lg object-cover border border-transparent"
-							/>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={onClearImage}
-								className="absolute -top-1 -right-1 rounded-full h-5 w-5 bg-foreground/80 text-background hover:bg-foreground"
-							>
-								<X className="size-3" />
-							</Button>
+			<div className="px-4 pb-6 pt-2 shrink-0 flex justify-center sticky bottom-0 bg-background backdrop-blur-md">
+				<div className="max-w-2xl w-full rounded-2xl shadow border border-border bg-background p-2.5">
+					{/* Pending image preview */}
+					{pendingImage && (
+						<div className="flex items-center gap-2 px-0.5 pb-1.5">
+							<div className="relative w-14 h-14 shrink-0">
+								<img
+									src={pendingImage.preview}
+									alt="Preview"
+									className="w-14 h-14 rounded-lg object-cover border border-transparent"
+								/>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={onClearImage}
+									className="absolute -top-1 -right-1 rounded-full h-5 w-5 bg-foreground/80 text-background hover:bg-foreground"
+								>
+									<X className="size-3" />
+								</Button>
+							</div>
 						</div>
-					</div>
-				)}
+					)}
 
-				{/* Pending location preview */}
-				{pendingLocation && (
-					<div className="flex items-center gap-2 px-0.5 pb-1.5">
-						<div className="relative flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 text-sm max-w-xs">
-							{pendingLocation.type === "location" ? (
-								<>
-									<MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
-									<span className="text-xs text-foreground truncate">{pendingLocation.label}</span>
-								</>
-							) : (
-								<>
-									<MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
-									<span className="text-xs text-foreground truncate">
-										{pendingLocation.origin.label} → {pendingLocation.destination.label}
-									</span>
-								</>
-							)}
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={onClearLocation}
-								className="absolute -top-1 -right-1 rounded-full h-5 w-5 bg-foreground/80 text-background hover:bg-foreground"
-							>
-								<X className="size-3" />
-							</Button>
+					{/* Pending location preview */}
+					{pendingLocation && (
+						<div className="flex items-center gap-2 px-0.5 pb-1.5">
+							<div className="relative flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 text-sm max-w-xs">
+								{pendingLocation.type === "location" ? (
+									<>
+										<MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+										<span className="text-xs text-foreground truncate">
+											{pendingLocation.label}
+										</span>
+									</>
+								) : (
+									<>
+										<MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+										<span className="text-xs text-foreground truncate">
+											{pendingLocation.origin.label} →{" "}
+											{pendingLocation.destination.label}
+										</span>
+									</>
+								)}
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={onClearLocation}
+									className="absolute -top-1 -right-1 rounded-full h-5 w-5 bg-foreground/80 text-background hover:bg-foreground"
+								>
+									<X className="size-3" />
+								</Button>
+							</div>
 						</div>
-					</div>
-				)}
+					)}
 
-				<form onSubmit={(e) => { e.preventDefault(); if (textareaRef.current) textareaRef.current.style.height = "auto"; onSubmit(); }} className="space-y-0.5">
-					<div>
-						<textarea
-							ref={textareaRef}
-							value={input}
-							onChange={handleInput}
-							onKeyDown={handleKeyDown}
-							placeholder={cc.inputPlaceholder}
-							disabled={isLoading}
-							rows={1}
-							className="
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							if (textareaRef.current)
+								textareaRef.current.style.height = "auto";
+							onSubmit();
+						}}
+						className="space-y-0.5"
+					>
+						<div>
+							<textarea
+								ref={textareaRef}
+								value={input}
+								onChange={handleInput}
+								onKeyDown={handleKeyDown}
+								placeholder={cc.inputPlaceholder}
+								disabled={isLoading}
+								rows={1}
+								className="
                 w-full resize-none rounded-none border-0
                 bg-transparent p-0.5 text-sm sm:text-base text-foreground caret-foreground
                 placeholder:text-muted-foreground focus:outline-none
                 disabled:opacity-50 max-h-32 overflow-y-auto leading-relaxed
               "
-							style={{ minHeight: "44px" }}
-						/>
-					</div>
-					<div className="flex items-center justify-between">
-						{/* Attach dropdown — appears upwards */}
-						<div className="relative shrink-0">
-							{attachMenuOpen && (
-								<>
-									<div
-										className="fixed inset-0 z-10"
-										onClick={() => setAttachMenuOpen(false)}
-									/>
-									<div className="absolute bottom-full left-0 mb-2 z-20 flex flex-col gap-0.5 rounded-lg border border-border bg-background p-1 shadow-sm min-w-40">
-										<ImageUploadButton
-											asMenuItem
-											onFileReady={handleFileReady}
-											disabled={isLoading || !!pendingImage}
+								style={{ minHeight: "44px" }}
+							/>
+						</div>
+						<div className="flex items-center justify-between">
+							{/* Attach dropdown — appears upwards */}
+							<div className="relative shrink-0">
+								{attachMenuOpen && (
+									<>
+										<div
+											className="fixed inset-0 z-10"
+											onClick={() => setAttachMenuOpen(false)}
 										/>
-										<Button
-											type="button"
-											variant="ghost"
-											onClick={handleShareLocation}
-											disabled={isLoading}
-											className="w-full justify-start gap-2.5 px-3 py-2 h-auto text-sm rounded-lg"
-										>
-											<MapPin className="w-5 h-5" />
-											{cc.locationLabel}
-										</Button>
-									</div>
-								</>
-							)}
+										<div className="absolute bottom-full left-0 mb-2 z-20 flex flex-col gap-0.5 rounded-lg border border-border bg-background p-1 shadow-sm min-w-40">
+											<ImageUploadButton
+												asMenuItem
+												onFileReady={handleFileReady}
+												disabled={isLoading || !!pendingImage}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												onClick={handleShareLocation}
+												disabled={isLoading}
+												className="w-full justify-start gap-2.5 px-3 py-2 h-auto text-sm rounded-lg"
+											>
+												<MapPin className="w-5 h-5" />
+												{cc.locationLabel}
+											</Button>
+										</div>
+									</>
+								)}
+								<Button
+									type="button"
+									variant="secondary"
+									size="icon"
+									onClick={() => setAttachMenuOpen((v) => !v)}
+									disabled={isLoading}
+									className="w-10 h-10 rounded-xl"
+								>
+									<Plus
+										className={`w-5 h-5 transition-transform duration-200 ${attachMenuOpen ? "rotate-45" : "rotate-0"}`}
+									/>
+								</Button>
+							</div>
+
 							<Button
-								type="button"
-								variant="secondary"
-								size="icon"
-								onClick={() => setAttachMenuOpen((v) => !v)}
-								disabled={isLoading}
-								className="w-10 h-10 rounded-xl"
+								type="submit"
+								disabled={isLoading || !input.trim()}
+								className="shrink-0 w-10 h-10 rounded-xl p-0"
 							>
-								<Plus
-									className={`w-5 h-5 transition-transform duration-200 ${attachMenuOpen ? "rotate-45" : "rotate-0"}`}
-								/>
+								<ArrowUp className="w-5 h-5" />
 							</Button>
 						</div>
-
-						<Button
-							type="submit"
-							disabled={isLoading || !input.trim()}
-							className="shrink-0 w-10 h-10 rounded-xl p-0"
-						>
-							<ArrowUp className="w-5 h-5" />
-						</Button>
-					</div>
-				</form>
+					</form>
+				</div>
 			</div>
-		</div>
 
-		<ImageCropDialog
-			open={!!rawForCrop}
-			imageSrc={rawForCrop?.rawUrl ?? ""}
-			onClose={handleCropCancel}
-			onConfirm={handleCropConfirm}
-			title={cc.imageCrop.title}
-			applyLabel={cc.imageCrop.apply}
-			cancelLabel={cc.imageCrop.cancel}
-		/>
+			<ImageCropDialog
+				open={!!rawForCrop}
+				imageSrc={rawForCrop?.rawUrl ?? ""}
+				onClose={handleCropCancel}
+				onConfirm={handleCropConfirm}
+				title={cc.imageCrop.title}
+				applyLabel={cc.imageCrop.apply}
+				cancelLabel={cc.imageCrop.cancel}
+			/>
 		</>
 	);
 }

@@ -4,27 +4,27 @@
 
 import "server-only";
 
-import { Chat, type Adapter, type Thread, type Message } from "chat";
 import { createMemoryState } from "@chat-adapter/state-memory";
+import { type Adapter, Chat, type Message, type Thread } from "chat";
+import { formatLocationForLLM } from "@/components/chat/location-types";
 import { db } from "@/lib/db";
 import { newId } from "@/lib/id";
-import { formatLocationForLLM } from "@/components/chat/location-types";
-import {
-	findOrCreateBotUser,
-	findOrCreateConversation,
-	createNewBotConversation,
-	detectPlatform,
-	isGroupMessage,
-	type BotPlatform,
-} from "./bot/user";
 import { resolveUserLocale } from "@/lib/locale";
+import { handleBotMessage, type ImagePart } from "./bot/llm";
 import {
-	downloadTelegramImage,
-	downloadWhatsAppImage,
 	downloadDiscordImage,
 	downloadSlackImage,
+	downloadTelegramImage,
+	downloadWhatsAppImage,
 } from "./bot/media";
-import { handleBotMessage, type ImagePart } from "./bot/llm";
+import {
+	type BotPlatform,
+	createNewBotConversation,
+	detectPlatform,
+	findOrCreateBotUser,
+	findOrCreateConversation,
+	isGroupMessage,
+} from "./bot/user";
 
 // ── State adapter ──────────────────────────────────────────────────────────────
 const state = process.env.REDIS_URL
@@ -39,7 +39,9 @@ const adapters: Record<string, Adapter> = {};
 
 if (process.env.TELEGRAM_BOT_TOKEN) {
 	const { createTelegramAdapter } = await import("@chat-adapter/telegram");
-	adapters.telegram = createTelegramAdapter({ botToken: process.env.TELEGRAM_BOT_TOKEN });
+	adapters.telegram = createTelegramAdapter({
+		botToken: process.env.TELEGRAM_BOT_TOKEN,
+	});
 }
 
 if (
@@ -123,7 +125,7 @@ export const bot =
 				state,
 				fallbackStreamingPlaceholderText: null,
 				concurrency: "queue", // force messages queue
-		  })
+			})
 		: null;
 
 if (!bot) {
@@ -135,7 +137,11 @@ if (!bot) {
 		platform: BotPlatform,
 		message: Message,
 		userId: string,
-	): Promise<{ userText: string; locationText?: string; imageParts: ImagePart[] }> {
+	): Promise<{
+		userText: string;
+		locationText?: string;
+		imageParts: ImagePart[];
+	}> {
 		const raw = message.raw as Record<string, unknown>;
 		let userText = message.text;
 		let locationText: string | undefined;
@@ -144,7 +150,11 @@ if (!bot) {
 		if (platform === "telegram") {
 			const msg = raw;
 			if (msg?.location) {
-				const loc = msg.location as { latitude: number; longitude: number; title?: string };
+				const loc = msg.location as {
+					latitude: number;
+					longitude: number;
+					title?: string;
+				};
 				locationText = formatLocationForLLM({
 					type: "location",
 					lat: loc.latitude,
@@ -160,17 +170,24 @@ if (!bot) {
 					userId,
 				);
 				if (dl) imageParts.push(dl);
-				else userText = `[User sent an image that could not be processed]\n${userText}`;
+				else
+					userText = `[User sent an image that could not be processed]\n${userText}`;
 			}
-			const doc = msg?.document as { file_id: string; mime_type?: string } | undefined;
-			if (doc?.mime_type?.startsWith("image/") && process.env.TELEGRAM_BOT_TOKEN) {
+			const doc = msg?.document as
+				| { file_id: string; mime_type?: string }
+				| undefined;
+			if (
+				doc?.mime_type?.startsWith("image/") &&
+				process.env.TELEGRAM_BOT_TOKEN
+			) {
 				const dl = await downloadTelegramImage(
 					process.env.TELEGRAM_BOT_TOKEN,
 					doc.file_id,
 					userId,
 				);
 				if (dl) imageParts.push(dl);
-				else userText = `[User sent an image that could not be processed]\n${userText}`;
+				else
+					userText = `[User sent an image that could not be processed]\n${userText}`;
 			}
 		}
 
@@ -198,14 +215,15 @@ if (!bot) {
 					userId,
 				);
 				if (dl) imageParts.push(dl);
-				else userText = `[User sent an image that could not be processed]\n${userText}`;
+				else
+					userText = `[User sent an image that could not be processed]\n${userText}`;
 			}
 		}
 
 		if (platform === "discord") {
-			const attachments = (
-				raw?.attachments as Array<{ url: string; content_type?: string }>
-			) ?? [];
+			const attachments =
+				(raw?.attachments as Array<{ url: string; content_type?: string }>) ??
+				[];
 			for (const att of attachments) {
 				if (att.content_type?.startsWith("image/")) {
 					const dl = await downloadDiscordImage(att.url, userId);
@@ -215,12 +233,11 @@ if (!bot) {
 		}
 
 		if (platform === "slack" && process.env.SLACK_BOT_TOKEN) {
-			const files = (
-				(raw?.event as Record<string, unknown>)?.files as Array<{
+			const files =
+				((raw?.event as Record<string, unknown>)?.files as Array<{
 					url_private: string;
 					mimetype?: string;
-				}>
-			) ?? [];
+				}>) ?? [];
 			for (const file of files) {
 				if (file.mimetype?.startsWith("image/")) {
 					const dl = await downloadSlackImage(
@@ -246,7 +263,9 @@ if (!bot) {
 
 		const code = text.split(" ")[1]?.trim().toUpperCase();
 		if (!code) {
-			await poster.post("Usage: /link CODE\nGenerate a code in Settings → Links.");
+			await poster.post(
+				"Usage: /link CODE\nGenerate a code in Settings → Links.",
+			);
 			return true;
 		}
 
@@ -256,7 +275,9 @@ if (!bot) {
 		});
 
 		if (!verification) {
-			await poster.post("Invalid or expired code. Generate a new one from Settings → Links.");
+			await poster.post(
+				"Invalid or expired code. Generate a new one from Settings → Links.",
+			);
 			return true;
 		}
 
@@ -300,14 +321,22 @@ if (!bot) {
 			});
 		}
 
-		await db.verification.delete({ where: { id: verification.id } }).catch(() => {});
-		const linkedUser = await db.user.findUnique({ where: { id: webUserId }, select: { locale: true } });
+		await db.verification
+			.delete({ where: { id: verification.id } })
+			.catch(() => {});
+		const linkedUser = await db.user.findUnique({
+			where: { id: webUserId },
+			select: { locale: true },
+		});
 		const { t: userT } = await resolveUserLocale(linkedUser?.locale);
 		await poster.post(userT.bot.linked);
 		return true;
 	}
 
-	async function processMessage(thread: Thread, message: Message): Promise<void> {
+	async function processMessage(
+		thread: Thread,
+		message: Message,
+	): Promise<void> {
 		const raw = message.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
 		const platformUserId = message.author.userId;
@@ -315,21 +344,44 @@ if (!bot) {
 
 		const isGroup = isGroupMessage(platform, raw);
 
-		const wasLink = await handleLinkCommand(thread, message.text, platform, platformUserId);
+		const wasLink = await handleLinkCommand(
+			thread,
+			message.text,
+			platform,
+			platformUserId,
+		);
 		if (wasLink) return;
 
-		const userId = await findOrCreateBotUser(platform, platformUserId, displayName, raw);
+		const userId = await findOrCreateBotUser(
+			platform,
+			platformUserId,
+			displayName,
+			raw,
+		);
 
 		if (message.text.trim() === "/newchat") {
 			console.log(`[bot:msg] /newchat from userId=${userId}`);
-			await createNewBotConversation(userId, platform, thread.id as string, isGroup);
-			const newchatUser = await db.user.findUnique({ where: { id: userId }, select: { locale: true } });
+			await createNewBotConversation(
+				userId,
+				platform,
+				thread.id as string,
+				isGroup,
+			);
+			const newchatUser = await db.user.findUnique({
+				where: { id: userId },
+				select: { locale: true },
+			});
 			const { t: userT } = await resolveUserLocale(newchatUser?.locale);
 			await thread.post(userT.bot.newchat);
 			return;
 		}
 
-		const conversationId = await findOrCreateConversation(userId, platform, thread.id as string, isGroup);
+		const conversationId = await findOrCreateConversation(
+			userId,
+			platform,
+			thread.id as string,
+			isGroup,
+		);
 		const { userText, locationText, imageParts } = await extractMessageData(
 			platform,
 			message,
@@ -357,7 +409,7 @@ if (!bot) {
 	bot.onNewMention(async (thread, message) => {
 		const raw = message.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
-if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
+		if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
 		await thread.subscribe();
 		await processMessage(thread, message);
 	});
@@ -370,7 +422,12 @@ if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
 		const raw = event.raw as Record<string, unknown>;
 		const platform = detectPlatform(raw);
 		const platformUserId = event.user.userId;
-		await handleLinkCommand(event.channel, `/link ${event.text}`, platform, platformUserId);
+		await handleLinkCommand(
+			event.channel,
+			`/link ${event.text}`,
+			platform,
+			platformUserId,
+		);
 	});
 
 	bot.onSlashCommand(["/newchat"], async (event) => {
@@ -379,9 +436,22 @@ if (platform === "telegram" && !process.env.TELEGRAM_GROUPS_ENABLED) return;
 		const platformUserId = event.user.userId;
 		const displayName = event.user.fullName || platform;
 		const isGroup = isGroupMessage(platform, raw);
-		const userId = await findOrCreateBotUser(platform, platformUserId, displayName, raw);
-		await createNewBotConversation(userId, platform, event.channel.id as string, isGroup);
-		const newchatUser = await db.user.findUnique({ where: { id: userId }, select: { locale: true } });
+		const userId = await findOrCreateBotUser(
+			platform,
+			platformUserId,
+			displayName,
+			raw,
+		);
+		await createNewBotConversation(
+			userId,
+			platform,
+			event.channel.id as string,
+			isGroup,
+		);
+		const newchatUser = await db.user.findUnique({
+			where: { id: userId },
+			select: { locale: true },
+		});
 		const { t: userT } = await resolveUserLocale(newchatUser?.locale);
 		await event.channel.post(userT.bot.newchat);
 	});

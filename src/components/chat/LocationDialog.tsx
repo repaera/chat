@@ -1,20 +1,24 @@
 // src/components/chat/LocationDialog.tsx
 "use client";
 
+import { ArrowRightLeft, Loader2, MapPin } from "lucide-react";
 import { useReducer } from "react";
+import type {
+	CommutePart,
+	LocationPart,
+	LocationPlace,
+} from "@/components/chat/location-types";
+import { PlaceSearchField } from "@/components/chat/PlaceSearchField";
+import { useLocale } from "@/components/providers/LocaleProvider";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { MapPin, ArrowRightLeft, Loader2 } from "lucide-react";
-import { useLocale } from "@/components/providers/LocaleProvider";
-import { usePlaceAutocomplete } from "@/hooks/use-place-autocomplete";
-import { PlaceSearchField } from "@/components/chat/PlaceSearchField";
-import type { LocationPart, CommutePart, LocationPlace } from "@/components/chat/location-types";
 import type { Suggestion } from "@/hooks/use-place-autocomplete";
+import { usePlaceAutocomplete } from "@/hooks/use-place-autocomplete";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -84,8 +88,10 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 // Resolve placeId → lat/lng via Places API
-async function resolvePlaceLatLng(placeId: string): Promise<{ lat: number; lng: number }> {
-	// @ts-ignore — Google Maps JS API loaded via script tag
+async function resolvePlaceLatLng(
+	placeId: string,
+): Promise<{ lat: number; lng: number }> {
+	// @ts-expect-error — Google Maps JS API loaded via script tag
 	const { Place } = await (window as any).google.maps.importLibrary("places");
 	const place = new Place({ id: placeId });
 	await place.fetchFields({ fields: ["location"] });
@@ -120,7 +126,12 @@ async function fetchDistanceMatrix(
 
 // ── Main Dialog ───────────────────────────────────────────────────────────
 
-export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmCommute }: Props) {
+export function LocationDialog({
+	open,
+	onClose,
+	onConfirmLocation,
+	onConfirmCommute,
+}: Props) {
 	const { t } = useLocale();
 	const ld = t.chatClient.locationDialog;
 
@@ -136,7 +147,8 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 		if (!loc.selected) return;
 		dispatch({ type: "SET_CONFIRMING", value: true });
 		try {
-			const coords = loc.coords ?? (await resolvePlaceLatLng(loc.selected.placeId));
+			const coords =
+				loc.coords ?? (await resolvePlaceLatLng(loc.selected.placeId));
 			onConfirmLocation({
 				type: "location",
 				lat: coords.lat,
@@ -174,8 +186,17 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 				placeId: dest.selected.placeId,
 			};
 
-			const { distanceKm, durationMin } = await fetchDistanceMatrix(originPlace, destinationPlace);
-			onConfirmCommute({ type: "commute", origin: originPlace, destination: destinationPlace, distanceKm, durationMin });
+			const { distanceKm, durationMin } = await fetchDistanceMatrix(
+				originPlace,
+				destinationPlace,
+			);
+			onConfirmCommute({
+				type: "commute",
+				origin: originPlace,
+				destination: destinationPlace,
+				distanceKm,
+				durationMin,
+			});
 			onClose();
 		} catch {
 			dispatch({ type: "SET_CALC_ERROR", error: ld.calcFailed });
@@ -185,17 +206,20 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={(v) => {
-			if (!v) {
-				onClose();
-				setTimeout(() => {
-					dispatch({ type: "RESET" });
-					locAC.clear();
-					originAC.clear();
-					destAC.clear();
-				}, 200);
-			}
-		}}>
+		<Dialog
+			open={open}
+			onOpenChange={(v) => {
+				if (!v) {
+					onClose();
+					setTimeout(() => {
+						dispatch({ type: "RESET" });
+						locAC.clear();
+						originAC.clear();
+						destAC.clear();
+					}, 200);
+				}
+			}}
+		>
 			<DialogContent className="max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:w-full max-sm:max-w-full max-sm:h-svh max-sm:rounded-none max-sm:content-start max-sm:data-[state=open]:slide-in-from-bottom-full max-sm:data-[state=closed]:slide-out-to-bottom-full max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=closed]:zoom-out-100 sm:max-w-md">
 				<DialogHeader className="text-left">
 					<DialogTitle>{ld.dialogTitle}</DialogTitle>
@@ -230,18 +254,28 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 							placeholder={ld.searchPlaceholder}
 							value={loc.query}
 							onChange={(v) => {
-								dispatch({ type: "UPDATE_LOC", patch: { query: v, coords: null } });
+								dispatch({
+									type: "UPDATE_LOC",
+									patch: { query: v, coords: null },
+								});
 								locAC.search(v);
 							}}
 							onSelect={(s) => {
-								dispatch({ type: "UPDATE_LOC", patch: { selected: s, query: s.label } });
+								dispatch({
+									type: "UPDATE_LOC",
+									patch: { selected: s, query: s.label },
+								});
 								locAC.clear();
 								resolvePlaceLatLng(s.placeId)
-									.then((c) => dispatch({ type: "UPDATE_LOC", patch: { coords: c } }))
+									.then((c) =>
+										dispatch({ type: "UPDATE_LOC", patch: { coords: c } }),
+									)
 									.catch(() => {});
 							}}
 							selected={loc.selected}
-							onClear={() => dispatch({ type: "UPDATE_LOC", patch: EMPTY_PLACE })}
+							onClear={() =>
+								dispatch({ type: "UPDATE_LOC", patch: EMPTY_PLACE })
+							}
 							loading={locAC.loading}
 							suggestions={locAC.suggestions}
 							noResultsLabel={ld.noResults}
@@ -254,7 +288,9 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 							disabled={!loc.selected || confirming}
 							className="w-full"
 						>
-							{confirming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+							{confirming ? (
+								<Loader2 className="w-4 h-4 animate-spin mr-2" />
+							) : null}
 							{confirming ? ld.calculating : ld.confirmBtn}
 						</Button>
 					</div>
@@ -267,18 +303,28 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 							placeholder={ld.originPlaceholder}
 							value={origin.query}
 							onChange={(v) => {
-								dispatch({ type: "UPDATE_ORIGIN", patch: { query: v, coords: null } });
+								dispatch({
+									type: "UPDATE_ORIGIN",
+									patch: { query: v, coords: null },
+								});
 								originAC.search(v);
 							}}
 							onSelect={(s) => {
-								dispatch({ type: "UPDATE_ORIGIN", patch: { selected: s, query: s.label } });
+								dispatch({
+									type: "UPDATE_ORIGIN",
+									patch: { selected: s, query: s.label },
+								});
 								originAC.clear();
 								resolvePlaceLatLng(s.placeId)
-									.then((c) => dispatch({ type: "UPDATE_ORIGIN", patch: { coords: c } }))
+									.then((c) =>
+										dispatch({ type: "UPDATE_ORIGIN", patch: { coords: c } }),
+									)
 									.catch(() => {});
 							}}
 							selected={origin.selected}
-							onClear={() => dispatch({ type: "UPDATE_ORIGIN", patch: EMPTY_PLACE })}
+							onClear={() =>
+								dispatch({ type: "UPDATE_ORIGIN", patch: EMPTY_PLACE })
+							}
 							loading={originAC.loading}
 							suggestions={originAC.suggestions}
 							noResultsLabel={ld.noResults}
@@ -288,18 +334,28 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 							placeholder={ld.destinationPlaceholder}
 							value={dest.query}
 							onChange={(v) => {
-								dispatch({ type: "UPDATE_DEST", patch: { query: v, coords: null } });
+								dispatch({
+									type: "UPDATE_DEST",
+									patch: { query: v, coords: null },
+								});
 								destAC.search(v);
 							}}
 							onSelect={(s) => {
-								dispatch({ type: "UPDATE_DEST", patch: { selected: s, query: s.label } });
+								dispatch({
+									type: "UPDATE_DEST",
+									patch: { selected: s, query: s.label },
+								});
 								destAC.clear();
 								resolvePlaceLatLng(s.placeId)
-									.then((c) => dispatch({ type: "UPDATE_DEST", patch: { coords: c } }))
+									.then((c) =>
+										dispatch({ type: "UPDATE_DEST", patch: { coords: c } }),
+									)
 									.catch(() => {});
 							}}
 							selected={dest.selected}
-							onClear={() => dispatch({ type: "UPDATE_DEST", patch: EMPTY_PLACE })}
+							onClear={() =>
+								dispatch({ type: "UPDATE_DEST", patch: EMPTY_PLACE })
+							}
 							loading={destAC.loading}
 							suggestions={destAC.suggestions}
 							noResultsLabel={ld.noResults}
@@ -312,7 +368,9 @@ export function LocationDialog({ open, onClose, onConfirmLocation, onConfirmComm
 							disabled={!origin.selected || !dest.selected || confirming}
 							className="w-full"
 						>
-							{confirming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+							{confirming ? (
+								<Loader2 className="w-4 h-4 animate-spin mr-2" />
+							) : null}
 							{confirming ? ld.calculating : ld.confirmBtn}
 						</Button>
 					</div>

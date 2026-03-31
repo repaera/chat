@@ -1,6 +1,6 @@
 // src/hooks/use-place-autocomplete.ts
 
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export type Suggestion = {
 	placeId: string;
@@ -23,21 +23,24 @@ export function usePlaceAutocomplete() {
 		debounceRef.current = setTimeout(async () => {
 			setLoading(true);
 			try {
-				// @ts-ignore — Google Maps JS API loaded via script tag
-				const { AutocompleteSessionToken, AutocompleteSuggestion } =
-					await (window as any).google.maps.importLibrary("places");
+				// @ts-expect-error — Google Maps JS API loaded via script tag
+				const { AutocompleteSessionToken, AutocompleteSuggestion } = await (
+					window as any
+				).google.maps.importLibrary("places");
 
 				const token = new AutocompleteSessionToken();
-				const { suggestions: raw } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
-					input: query,
-					sessionToken: token,
-				});
+				const { suggestions: raw } =
+					await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+						input: query,
+						sessionToken: token,
+					});
 
 				setSuggestions(
 					(raw as any[]).map((s: any) => ({
 						placeId: s.placePrediction.placeId,
 						label:
-							s.placePrediction.mainText?.toString() ?? s.placePrediction.text.toString(),
+							s.placePrediction.mainText?.toString() ??
+							s.placePrediction.text.toString(),
 						secondLine: s.placePrediction.secondaryText?.toString(),
 					})),
 				);

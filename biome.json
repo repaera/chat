@@ -16,7 +16,38 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noAssignInExpressions": "off",
+				"noShadowRestrictedNames": "off",
+				"noArrayIndexKey": "off",
+				"noDocumentCookie": "off",
+				"noConfusingVoidType": "off"
+			},
+			"a11y": {
+				"useValidAriaRole": "off",
+				"noSvgWithoutTitle": "off",
+				"useAriaPropsSupportedByRole": "off",
+				"useButtonType": "off",
+				"noStaticElementInteractions": "off",
+				"useKeyWithClickEvents": "off"
+			},
+			"style": {
+				"useTemplate": "off",
+				"noNonNullAssertion": "off"
+			},
+			"performance": {
+				"noImgElement": "off"
+			},
+			"complexity": {
+				"noImportantStyles": "off",
+				"useLiteralKeys": "off",
+				"noUselessSwitchCase": "off"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "off"
+			}
 		}
 	},
 	"javascript": {

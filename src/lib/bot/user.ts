@@ -28,9 +28,8 @@ export function detectBotLocale(platform: BotPlatform, raw: unknown): string {
 
 	if (platform === "telegram") {
 		// raw IS the Telegram message object
-		const lc = (r?.from as Record<string, unknown> | undefined)?.language_code as
-			| string
-			| undefined;
+		const lc = (r?.from as Record<string, unknown> | undefined)
+			?.language_code as string | undefined;
 		if (lc) {
 			const lang = lc.split("-")[0].toLowerCase();
 			return LANG_TO_LOCALE[lang] ?? fallback;
@@ -57,7 +56,8 @@ export function detectBotLocale(platform: BotPlatform, raw: unknown): string {
 				"39": "IT",
 			};
 			const country =
-				prefixToCountry[digits.slice(0, 2)] ?? prefixToCountry[digits.slice(0, 1)];
+				prefixToCountry[digits.slice(0, 2)] ??
+				prefixToCountry[digits.slice(0, 1)];
 			if (country) return COUNTRY_TO_LOCALE[country] ?? fallback;
 		}
 	}
@@ -75,21 +75,28 @@ export function detectPlatform(raw: unknown): BotPlatform {
 	// GitHub: { type: "issue_comment"|"review_comment", comment, repository }
 	if (r?.repository !== undefined && r?.comment !== undefined) return "github";
 	// Linear: { comment: { issueId, ... } }
-	if ((r?.comment as Record<string, unknown>)?.issueId !== undefined) return "linear";
+	if ((r?.comment as Record<string, unknown>)?.issueId !== undefined)
+		return "linear";
 	// GChat: Pub/Sub notification with message.sender
-	if ((r?.message as Record<string, unknown>)?.sender !== undefined) return "gchat";
+	if ((r?.message as Record<string, unknown>)?.sender !== undefined)
+		return "gchat";
 	// Telegram: message object with message_id at top level
 	if (typeof r?.message_id === "number") return "telegram";
 	// Discord message: data with author.id
-	if ((r?.author as Record<string, unknown>)?.id !== undefined) return "discord";
+	if ((r?.author as Record<string, unknown>)?.id !== undefined)
+		return "discord";
 	// Discord slash command interaction: { application_id, type: 2, data: { name } }
 	if (typeof r?.application_id === "string" && r?.type === 2) return "discord";
 	// Slack message: event with ts (Slack timestamp string)
 	if (r?.ts !== undefined && r?.type !== undefined) return "slack";
 	// Slack slash command: { command, team_id, channel_id, user_id }
-	if (typeof r?.command === "string" && typeof r?.team_id === "string") return "slack";
+	if (typeof r?.command === "string" && typeof r?.team_id === "string")
+		return "slack";
 	// Teams: Graph API message with createdDateTime and from.user
-	if (r?.createdDateTime !== undefined && (r?.from as Record<string, unknown>)?.user !== undefined)
+	if (
+		r?.createdDateTime !== undefined &&
+		(r?.from as Record<string, unknown>)?.user !== undefined
+	)
 		return "teams";
 	// Teams slash command / bot framework activity: { serviceUrl, channelId: "msteams" }
 	if (r?.serviceUrl !== undefined && r?.channelId === "msteams") return "teams";
@@ -113,7 +120,8 @@ export function isGroupMessage(platform: BotPlatform, raw: unknown): boolean {
 		return chatType === "group" || chatType === "supergroup";
 	}
 	if (platform === "slack") {
-		const channelId = ((r?.event as Record<string, unknown>)?.channel as string) ?? "";
+		const channelId =
+			((r?.event as Record<string, unknown>)?.channel as string) ?? "";
 		return channelId.startsWith("C");
 	}
 	if (platform === "discord")

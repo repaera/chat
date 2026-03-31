@@ -3,16 +3,16 @@
 
 import "server-only";
 
-import type { Thread } from "chat";
-import { streamText, stepCountIs, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import * as Sentry from "@sentry/nextjs";
+import { stepCountIs, streamText, type ToolSet } from "ai";
+import type { Thread } from "chat";
+import { appConfig } from "@/lib/app-config";
 import { db } from "@/lib/db";
 import { newId } from "@/lib/id";
 import { resolveModel } from "@/lib/llm";
 import { resolveUserLocale } from "@/lib/locale";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { appConfig } from "@/lib/app-config";
 import type { BotPlatform } from "./user";
 
 export interface ImagePart {
@@ -32,7 +32,10 @@ export interface BotMessageOptions {
 }
 
 // ── Helper: fetch R2 image and convert to data URL (for actual vision) ──
-async function imageUrlToDataUrl(url: string, mediaType: string): Promise<string> {
+async function imageUrlToDataUrl(
+	url: string,
+	mediaType: string,
+): Promise<string> {
 	const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
 	if (!res.ok) throw new Error(`Failed to fetch image from R2: ${res.status}`);
 	const buffer = await res.arrayBuffer();
@@ -47,20 +50,33 @@ const PLATFORM_HINTS: Record<BotPlatform, string> = {
 	whatsapp:
 		"You are responding via WhatsApp. Keep responses concise and natural. Only use *bold* and _italic_.",
 	slack: "You are responding via Slack. Keep responses concise and natural.",
-	teams: "You are responding via Microsoft Teams. Keep responses professional and concise.",
+	teams:
+		"You are responding via Microsoft Teams. Keep responses professional and concise.",
 	gchat: "You are responding via Google Chat. Keep responses concise.",
 	discord:
 		"You are responding via Discord. Keep responses concise and natural.",
-	github: "You are responding via GitHub. Keep responses focused on the issue context.",
-	linear: "You are responding via Linear. Keep responses focused on the issue context.",
+	github:
+		"You are responding via GitHub. Keep responses focused on the issue context.",
+	linear:
+		"You are responding via Linear. Keep responses focused on the issue context.",
 };
 
 export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
-	const { userId, conversationId, userText, platform, imageParts = [], locationText, thread } =
-		opts;
+	const {
+		userId,
+		conversationId,
+		userText,
+		platform,
+		imageParts = [],
+		locationText,
+		thread,
+	} = opts;
 
 	// ── 1. Rate limit ──────────────────────────────────────────────────────────
-	const rateResult = await checkRateLimit(`user:${userId}`, { limit: 20, windowMs: 60_000 });
+	const rateResult = await checkRateLimit(`user:${userId}`, {
+		limit: 20,
+		windowMs: 60_000,
+	});
 	if (!rateResult.success) {
 		await thread.post("Too many messages. Please wait a moment.");
 		return;
@@ -74,10 +90,16 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 	if (weeklyLimit > 0) {
 		const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 		const weeklyCount = await db.message.count({
-			where: { role: "user", conversation: { userId }, createdAt: { gte: since } },
+			where: {
+				role: "user",
+				conversation: { userId },
+				createdAt: { gte: since },
+			},
 		});
 		if (weeklyCount >= weeklyLimit) {
-			await thread.post("Weekly message limit reached. Please try again next week.");
+			await thread.post(
+				"Weekly message limit reached. Please try again next week.",
+			);
 			return;
 		}
 	}
@@ -86,7 +108,7 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 	const contextWindow = parseInt(process.env.BOT_CONTEXT_WINDOW ?? "15", 10);
 	const recent = await db.message.findMany({
 		where: { conversationId },
-		orderBy: { createdAt: "desc" },   // ← newest first
+		orderBy: { createdAt: "desc" }, // ← newest first
 		take: contextWindow,
 		select: { role: true, content: true },
 	});
@@ -121,12 +143,14 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 				.sign(new TextEncoder().encode(process.env.MCP_JWT_SECRET));
 			hdrs["X-User-Token"] = jwt;
 		}
-		return createMCPClient({ transport: { type: "http", url, headers: hdrs } }).catch(
-			(err) => {
-				Sentry.captureException(err, { tags: { source: "mcp:connect:bot", url } });
-				return null;
-			},
-		);
+		return createMCPClient({
+			transport: { type: "http", url, headers: hdrs },
+		}).catch((err) => {
+			Sentry.captureException(err, {
+				tags: { source: "mcp:connect:bot", url },
+			});
+			return null;
+		});
 	}
 
 	if (process.env.MCP_URL) {
@@ -134,7 +158,10 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		if (c) mcpClients.push(c);
 	}
 	if (process.env.MCP_APPS_URL) {
-		const c = await connectMCP(process.env.MCP_APPS_URL, process.env.MCP_APPS_TOKEN);
+		const c = await connectMCP(
+			process.env.MCP_APPS_URL,
+			process.env.MCP_APPS_TOKEN,
+		);
 		if (c) mcpClients.push(c);
 	}
 	for (const c of mcpClients) {
@@ -156,15 +183,23 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		try {
 			userContentParts.push({ type: "text", text: `[image_url: ${img.url}]` });
 			const dataUrl = await imageUrlToDataUrl(img.url, img.mediaType);
-			userContentParts.push({ type: "image", image: dataUrl, mimeType: img.mediaType });
+			userContentParts.push({
+				type: "image",
+				image: dataUrl,
+				mimeType: img.mediaType,
+			});
 		} catch (err) {
 			console.error("Image fetch for LLM failed", err);
-			userContentParts.push({ type: "text", text: `[Image could not be loaded for analysis]` });
+			userContentParts.push({
+				type: "text",
+				text: `[Image could not be loaded for analysis]`,
+			});
 		}
 	}
 
 	if (userText) userContentParts.push({ type: "text", text: userText });
-	if (userContentParts.length === 0) userContentParts.push({ type: "text", text: "" });
+	if (userContentParts.length === 0)
+		userContentParts.push({ type: "text", text: "" });
 
 	const messages = [
 		...history.map((m) => ({
@@ -181,10 +216,13 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 	];
 
 	// ── 7. System prompt (clean + platform-aware) ──────────────────────────────
-	const platformContext = process.env[`${platform.toUpperCase()}_PERSONA_CONTEXT`];
+	const platformContext =
+		process.env[`${platform.toUpperCase()}_PERSONA_CONTEXT`];
 	const systemPrompt = [
 		t.system.persona(userName),
-		...(appConfig.personaContext ? [`You specialize in: ${appConfig.personaContext}.`] : []),
+		...(appConfig.personaContext
+			? [`You specialize in: ${appConfig.personaContext}.`]
+			: []),
 		...(platformContext ? [`You specialize in: ${platformContext}.`] : []),
 		t.system.helpWithTools,
 		t.system.tone,
@@ -196,11 +234,17 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 
 	// ── 8. Persist user message + auto-title BEFORE streaming ─────────────────
 	const userMsgId = newId();
-	const storedUserContent = [locationText, userText].filter(Boolean).join("\n") || "(media)";
+	const storedUserContent =
+		[locationText, userText].filter(Boolean).join("\n") || "(media)";
 
 	try {
 		await db.message.create({
-			data: { id: userMsgId, conversationId, role: "user", content: storedUserContent },
+			data: {
+				id: userMsgId,
+				conversationId,
+				role: "user",
+				content: storedUserContent,
+			},
 		});
 	} catch (err) {
 		console.error("[bot] Failed to save user message:", err);
@@ -213,15 +257,16 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 			select: { title: true },
 		});
 		if (!conv?.title) {
-			const autoTitle = userText.slice(0, 80) + (userText.length > 80 ? "…" : "");
+			const autoTitle =
+				userText.slice(0, 80) + (userText.length > 80 ? "…" : "");
 			await db.conversation
 				.update({
 					where: { id: conversationId },
 					data: { title: autoTitle },
 				})
 				.catch((err) => {
-				console.error("[bot] Failed to auto-title conversation:", err);
-			});
+					console.error("[bot] Failed to auto-title conversation:", err);
+				});
 		}
 	}
 
@@ -238,9 +283,16 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 			process.env.LLM_MAX_STEPS ? parseInt(process.env.LLM_MAX_STEPS, 10) : 5,
 		),
 		onError: ({ error }) => {
-			console.error("[bot] LLM error:", error instanceof Error ? error.message : error);
+			console.error(
+				"[bot] LLM error:",
+				error instanceof Error ? error.message : error,
+			);
 			Sentry.captureException(error, {
-				tags: { source: "llm:bot", provider: process.env.LLM_PROVIDER ?? "auto", platform },
+				tags: {
+					source: "llm:bot",
+					provider: process.env.LLM_PROVIDER ?? "auto",
+					platform,
+				},
 				extra: { userId, conversationId },
 			});
 		},
@@ -251,7 +303,9 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 	} catch (err) {
 		const code = (err as { code?: string }).code;
 		if (code === "VALIDATION_ERROR") {
-			await thread.post("Sorry, I couldn't generate a response. Please try again.").catch(() => {});
+			await thread
+				.post("Sorry, I couldn't generate a response. Please try again.")
+				.catch(() => {});
 		} else {
 			// Log but don't rethrow — still persist whatever the LLM generated.
 			console.error("[bot] Platform delivery error:", err);
@@ -278,12 +332,20 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		const assistantMsgId = newId();
 
 		await db.message.create({
-			data: { id: assistantMsgId, conversationId, role: "assistant", content: assistantText },
+			data: {
+				id: assistantMsgId,
+				conversationId,
+				role: "assistant",
+				content: assistantText,
+			},
 		});
 
 		await db.conversation.update({
 			where: { id: conversationId },
-			data: { updatedAt: new Date(), ...(hasImages ? { hasImages: true } : {}) },
+			data: {
+				updatedAt: new Date(),
+				...(hasImages ? { hasImages: true } : {}),
+			},
 		});
 
 		if (imageParts.length > 0) {
@@ -302,6 +364,8 @@ export async function handleBotMessage(opts: BotMessageOptions): Promise<void> {
 		}
 	} catch (err) {
 		console.error("[bot] Failed to save assistant message:", err);
-		Sentry.captureException(err, { tags: { source: "db:bot:assistant-message" } });
+		Sentry.captureException(err, {
+			tags: { source: "db:bot:assistant-message" },
+		});
 	}
 }

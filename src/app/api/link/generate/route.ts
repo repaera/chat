@@ -4,9 +4,9 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import type { BotPlatform } from "@/lib/bot/user";
 import { db } from "@/lib/db";
 import { newId } from "@/lib/id";
-import type { BotPlatform } from "@/lib/bot/user";
 
 const VALID_PLATFORMS: BotPlatform[] = [
 	"telegram",
@@ -31,7 +31,10 @@ export async function POST(request: Request): Promise<Response> {
 
 	// 6-character uppercase alphanumeric code (avoids ambiguous chars)
 	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-	const code = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+	const code = Array.from(
+		{ length: 6 },
+		() => chars[Math.floor(Math.random() * chars.length)],
+	).join("");
 
 	const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 

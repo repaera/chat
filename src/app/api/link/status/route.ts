@@ -3,8 +3,8 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import type { BotPlatform } from "@/lib/bot/user";
+import { db } from "@/lib/db";
 
 const PLATFORM_PROVIDERS: BotPlatform[] = [
 	"telegram",

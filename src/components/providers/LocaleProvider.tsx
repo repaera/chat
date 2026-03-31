@@ -9,36 +9,36 @@
 
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import type { UILocale } from "@/locales";
 
 type LocaleContextValue = {
-  t: UILocale;
-  locale: string;
+	t: UILocale;
+	locale: string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({
-  children,
-  t,
-  locale,
+	children,
+	t,
+	locale,
 }: {
-  children: ReactNode;
-  t: UILocale;
-  locale: string;
+	children: ReactNode;
+	t: UILocale;
+	locale: string;
 }) {
-  return (
-    <LocaleContext.Provider value={{ t, locale }}>
-      {children}
-    </LocaleContext.Provider>
-  );
+	return (
+		<LocaleContext.Provider value={{ t, locale }}>
+			{children}
+		</LocaleContext.Provider>
+	);
 }
 
 export function useLocale(): LocaleContextValue {
-  const ctx = useContext(LocaleContext);
-  if (!ctx) {
-    throw new Error("useLocale() must be used inside <LocaleProvider>");
-  }
-  return ctx;
+	const ctx = useContext(LocaleContext);
+	if (!ctx) {
+		throw new Error("useLocale() must be used inside <LocaleProvider>");
+	}
+	return ctx;
 }

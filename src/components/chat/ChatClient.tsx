@@ -3,18 +3,29 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
-import { useRef, useEffect, useState, useMemo, useCallback, useLayoutEffect } from "react";
-import { useMountEffect } from "@/hooks/use-mount-effect";
-import { toast } from "sonner";
 import type { UIMessage } from "ai";
-import { useLocale } from "@/components/providers/LocaleProvider";
-import { appConfig } from "@/lib/app-config";
-import { LocationDialog } from "@/components/chat/LocationDialog";
-import { MessageList } from "@/components/chat/MessageList";
-import { ChatInput, type PendingImage } from "@/components/chat/ChatInput";
-import type { LocationPart, CommutePart, LocationAttachment } from "@/components/chat/location-types";
+import { DefaultChatTransport } from "ai";
 import { ArrowDown } from "lucide-react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { toast } from "sonner";
+import { ChatInput, type PendingImage } from "@/components/chat/ChatInput";
+import { LocationDialog } from "@/components/chat/LocationDialog";
+import type {
+	CommutePart,
+	LocationAttachment,
+	LocationPart,
+} from "@/components/chat/location-types";
+import { MessageList } from "@/components/chat/MessageList";
+import { useLocale } from "@/components/providers/LocaleProvider";
+import { useMountEffect } from "@/hooks/use-mount-effect";
+import { appConfig } from "@/lib/app-config";
 
 type Props = {
 	activeConversationId: string | null;
@@ -38,7 +49,9 @@ export default function ChatClient({
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const topRef = useRef<HTMLDivElement>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const previousScrollRef = useRef<{ height: number; top: number } | null>(null);
+	const previousScrollRef = useRef<{ height: number; top: number } | null>(
+		null,
+	);
 	const lastMessageIdRef = useRef<string | null>(null);
 	const skipInitialFetchRef = useRef(skipInitialFetch);
 	const activeConversationIdRef = useRef(activeConversationId);
@@ -54,11 +67,14 @@ export default function ChatClient({
 	// ── State ─────────────────────────────────────────────────────────────────
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [hasMore, setHasMore] = useState(true);
-	const [isInitialLoading, setIsInitialLoading] = useState(!!activeConversationId);
+	const [isInitialLoading, setIsInitialLoading] = useState(
+		!!activeConversationId,
+	);
 	const [input, setInput] = useState("");
 	const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
 	const [locationDialogOpen, setLocationDialogOpen] = useState(false);
-	const [pendingLocation, setPendingLocation] = useState<LocationAttachment | null>(null);
+	const [pendingLocation, setPendingLocation] =
+		useState<LocationAttachment | null>(null);
 	const [isNearBottom, setIsNearBottom] = useState(true);
 	const isNearBottomRef = useRef(true);
 	const [hasUnread, setHasUnread] = useState(false);
@@ -102,12 +118,19 @@ export default function ChatClient({
 							if (init?.body) {
 								const bodyParsed = JSON.parse(init.body as string);
 								const msgs = bodyParsed.messages || [];
-								const lastUserMsg = msgs.filter((m: any) => m.role === "user").pop();
+								const lastUserMsg = msgs
+									.filter((m: any) => m.role === "user")
+									.pop();
 								if (lastUserMsg) {
-									const textPart = lastUserMsg.parts?.find((p: any) => p.type === "text")?.text;
+									const textPart = lastUserMsg.parts?.find(
+										(p: any) => p.type === "text",
+									)?.text;
 									const content = textPart || lastUserMsg.content || "";
 									if (content) {
-										tempTitle = content.length > 30 ? content.slice(0, 30) + "..." : content;
+										tempTitle =
+											content.length > 30
+												? content.slice(0, 30) + "..."
+												: content;
 									}
 								}
 							}
@@ -131,8 +154,20 @@ export default function ChatClient({
 	const isLoading = status === "streaming" || status === "submitted";
 
 	// ── Pagination state ref (stable read inside callbacks) ───────────────────
-	const observerStateRef = useRef({ activeConversationId, messages, isLoadingMore, hasMore, setMessages });
-	observerStateRef.current = { activeConversationId, messages, isLoadingMore, hasMore, setMessages };
+	const observerStateRef = useRef({
+		activeConversationId,
+		messages,
+		isLoadingMore,
+		hasMore,
+		setMessages,
+	});
+	observerStateRef.current = {
+		activeConversationId,
+		messages,
+		isLoadingMore,
+		hasMore,
+		setMessages,
+	};
 
 	// ── Initial fetch ─────────────────────────────────────────────────────────
 	useEffect(() => {
@@ -221,7 +256,8 @@ export default function ChatClient({
 	useLayoutEffect(() => {
 		if (previousScrollRef.current && scrollContainerRef.current) {
 			const container = scrollContainerRef.current;
-			const heightDiff = container.scrollHeight - previousScrollRef.current.height;
+			const heightDiff =
+				container.scrollHeight - previousScrollRef.current.height;
 			container.scrollTop = previousScrollRef.current.top + heightDiff;
 			previousScrollRef.current = null;
 		}
@@ -353,9 +389,12 @@ export default function ChatClient({
 			try {
 				const formData = new FormData();
 				formData.append("file", imageToSend.rawData, "image.jpg");
-				const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+				const uploadRes = await fetch("/api/upload", {
+					method: "POST",
+					body: formData,
+				});
 				if (!uploadRes.ok) throw new Error("upload failed");
-				const { url } = await uploadRes.json() as { url: string };
+				const { url } = (await uploadRes.json()) as { url: string };
 				parts.push({ type: "file", mediaType: imageToSend.mimeType, url });
 			} catch {
 				toast.error(t.imageUpload.errors.uploadFailedRetry);
@@ -372,10 +411,9 @@ export default function ChatClient({
 		}
 
 		try {
-			await sendMessage(
-				{ parts } as any,
-				{ body: { conversationId: activeConversationIdRef.current } },
-			);
+			await sendMessage({ parts } as any, {
+				body: { conversationId: activeConversationIdRef.current },
+			});
 			onQuotaUpdate?.();
 		} catch (err: unknown) {
 			const errStatus = (err as { status?: number })?.status;
@@ -402,7 +440,9 @@ export default function ChatClient({
 			(pos) => {
 				const { latitude, longitude } = pos.coords;
 				const mapsUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
-				doSend(`${cc.locationPrefix} ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n${mapsUrl}`);
+				doSend(
+					`${cc.locationPrefix} ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n${mapsUrl}`,
+				);
 			},
 			() => toast.error(cc.toasts.geolocationFailed),
 			{ timeout: 10000 },
@@ -445,7 +485,9 @@ export default function ChatClient({
 				/>
 
 				{/* Scroll-to-bottom button — fades in when user scrolls away from bottom */}
-				<div className={`absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none z-10 transition-opacity duration-200 ${isNearBottom ? "opacity-0" : "opacity-100"}`}>
+				<div
+					className={`absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none z-10 transition-opacity duration-200 ${isNearBottom ? "opacity-0" : "opacity-100"}`}
+				>
 					<button
 						onClick={scrollToBottom}
 						aria-label="Scroll to bottom"

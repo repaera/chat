@@ -1,16 +1,22 @@
 // src/components/chat/MessageList.tsx
 "use client";
 
-import { useRef, useState, useEffect } from "react";
 import type { UIMessage } from "ai";
-import { Button } from "@/components/ui/button";
 import Linkify from "linkify-react";
+import { Bot } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot } from "lucide-react";
-import { LocationBubble, CommuteBubble } from "@/components/chat/LocationBubble";
-import type { LocationPart, CommutePart } from "@/components/chat/location-types";
+import {
+	CommuteBubble,
+	LocationBubble,
+} from "@/components/chat/LocationBubble";
+import type {
+	CommutePart,
+	LocationPart,
+} from "@/components/chat/location-types";
 import { TypedText } from "@/components/chat/TypedText";
+import { Button } from "@/components/ui/button";
 
 // ── Image with blur-to-sharp transition ────────────────────────────────────
 function ChatImage({ src }: { src: string }) {
@@ -46,13 +52,23 @@ function MarkdownImage({ src, alt }: { src?: string | Blob; alt?: string }) {
 	if (!src || typeof src !== "string") return null;
 	if (errored) {
 		return (
-			<a href={src} target="_blank" rel="noopener noreferrer" className="underline break-all text-sm">
+			<a
+				href={src}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="underline break-all text-sm"
+			>
 				{alt || src}
 			</a>
 		);
 	}
 	return (
-		<a href={src} target="_blank" rel="noopener noreferrer" className="block my-1.5">
+		<a
+			href={src}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="block my-1.5"
+		>
 			<div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border">
 				{!loaded && (
 					<div className="absolute inset-0 bg-muted animate-pulse rounded-xl" />
@@ -75,7 +91,11 @@ function SkeletonBubble({
 	role,
 	lines,
 	width,
-}: { role: "user" | "assistant"; lines: number; width: string }) {
+}: {
+	role: "user" | "assistant";
+	lines: number;
+	width: string;
+}) {
 	const isUser = role === "user";
 	return (
 		<div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
@@ -152,10 +172,15 @@ export function MessageList({
 
 	// The last assistant message ID — hidden during streaming so it never flashes
 	// before TypedText takes over.
-	const lastAssistantId = [...messages].reverse().find((m) => m.role === "assistant")?.id;
+	const lastAssistantId = [...messages]
+		.reverse()
+		.find((m) => m.role === "assistant")?.id;
 
 	return (
-		<div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-y-none">
+		<div
+			ref={scrollContainerRef}
+			className="flex-1 overflow-y-auto overscroll-y-none"
+		>
 			<div className="min-h-full flex flex-col justify-end px-4 pt-6 pb-6">
 				<div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
 					<div ref={topRef} className="h-1 shrink-0" />
@@ -173,7 +198,9 @@ export function MessageList({
 
 					{isLoadingMore && (
 						<div className="flex justify-center py-2">
-							<span className="text-xs text-muted-foreground animate-pulse">{cc.loadingMore}</span>
+							<span className="text-xs text-muted-foreground animate-pulse">
+								{cc.loadingMore}
+							</span>
 						</div>
 					)}
 
@@ -199,13 +226,20 @@ export function MessageList({
 					{/* Messages list */}
 					{messages.map((m) => {
 						const hasText = (m.parts ?? []).some(
-							(p) => p.type === "text" && (p as { type: "text"; text: string }).text.length > 0,
+							(p) =>
+								p.type === "text" &&
+								(p as { type: "text"; text: string }).text.length > 0,
 						);
 						if (m.role === "assistant" && !hasText) return null;
 
 						// Hide the last assistant message while streaming — TypedText will
 						// animate it in cleanly once streaming completes, with no flicker.
-						if (status === "streaming" && m.id === lastAssistantId && m.role === "assistant") return null;
+						if (
+							status === "streaming" &&
+							m.id === lastAssistantId &&
+							m.role === "assistant"
+						)
+							return null;
 
 						return (
 							<div
@@ -223,7 +257,9 @@ export function MessageList({
 									{/* Location / Commute bubbles */}
 									{(m.parts ?? [])
 										.filter(
-											(p) => (p as any).type === "location" || (p as any).type === "commute",
+											(p) =>
+												(p as any).type === "location" ||
+												(p as any).type === "commute",
 										)
 										.map((part, i) => {
 											const anyPart = part as any;
@@ -249,82 +285,112 @@ export function MessageList({
                       inline-flex flex-col rounded-2xl px-2.5 py-1 text-sm space-y-1.5
                       wrap-break-word min-w-0
                       ${
-																m.role === "user"
-																	? "max-w-xs bg-muted text-foreground rounded-br-sm"
-																	: "w-full bg-background border border-border text-foreground rounded-bl-sm"
-															}
+												m.role === "user"
+													? "max-w-xs bg-muted text-foreground rounded-br-sm"
+													: "w-full bg-background border border-border text-foreground rounded-bl-sm"
+											}
                     `}
 									>
 										{/* Images first */}
-										{(m.parts ?? []).filter((p) => p.type === "file").map((part, i) => {
-											const filePart = part as { type: "file"; mediaType: string; url: string };
-											if (!filePart.mediaType.startsWith("image/")) return null;
-											return (
-												<a
-													key={`img-${i}`}
-													href={filePart.url}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="block"
-												>
-													<ChatImage src={filePart.url} />
-												</a>
-											);
-										})}
+										{(m.parts ?? [])
+											.filter((p) => p.type === "file")
+											.map((part, i) => {
+												const filePart = part as {
+													type: "file";
+													mediaType: string;
+													url: string;
+												};
+												if (!filePart.mediaType.startsWith("image/"))
+													return null;
+												return (
+													<a
+														key={`img-${i}`}
+														href={filePart.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="block"
+													>
+														<ChatImage src={filePart.url} />
+													</a>
+												);
+											})}
 
 										{/* Text */}
-										{(m.parts ?? []).filter((p) => p.type === "text").map((part, i) => {
-											const textPart = part as { type: "text"; text: string };
-											if (!textPart.text) return null;
-											const isUser = m.role === "user";
-											const shouldAnimate =
-												!isUser &&
-												i === 0 &&
-												m.id === animateMessageId &&
-												m.id !== animationDoneId;
+										{(m.parts ?? [])
+											.filter((p) => p.type === "text")
+											.map((part, i) => {
+												const textPart = part as { type: "text"; text: string };
+												if (!textPart.text) return null;
+												const isUser = m.role === "user";
+												const shouldAnimate =
+													!isUser &&
+													i === 0 &&
+													m.id === animateMessageId &&
+													m.id !== animationDoneId;
 
-											// User messages: plain text with linkify
-											if (isUser) {
+												// User messages: plain text with linkify
+												if (isUser) {
+													return (
+														<p
+															key={`txt-${i}`}
+															className="whitespace-pre-wrap leading-relaxed"
+														>
+															<Linkify
+																options={{
+																	target: "_blank",
+																	rel: "noopener noreferrer",
+																	className:
+																		"underline underline-offset-2 hover:opacity-80",
+																}}
+															>
+																{textPart.text}
+															</Linkify>
+														</p>
+													);
+												}
+
+												// Assistant messages: TypedText during animation, react-markdown after
+												if (shouldAnimate) {
+													return (
+														<p
+															key={`txt-${i}`}
+															className="whitespace-pre-wrap leading-relaxed"
+														>
+															<TypedText
+																text={textPart.text}
+																typeSpeed={5}
+																onComplete={() => setAnimationDoneId(m.id)}
+															/>
+														</p>
+													);
+												}
+
 												return (
-													<p key={`txt-${i}`} className="whitespace-pre-wrap leading-relaxed">
-														<Linkify options={{ target: "_blank", rel: "noopener noreferrer", className: "underline underline-offset-2 hover:opacity-80" }}>
-															{textPart.text}
-														</Linkify>
-													</p>
-												);
-											}
-
-											// Assistant messages: TypedText during animation, react-markdown after
-											if (shouldAnimate) {
-												return (
-													<p key={`txt-${i}`} className="whitespace-pre-wrap leading-relaxed">
-														<TypedText
-															text={textPart.text}
-															typeSpeed={5}
-															onComplete={() => setAnimationDoneId(m.id)}
-														/>
-													</p>
-												);
-											}
-
-											return (
-												<div key={`txt-${i}`} className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:rounded-lg [&_code]:text-xs">
-													<ReactMarkdown
-														remarkPlugins={[remarkGfm]}
-														components={{
-															img: MarkdownImage,
-															a: ({ href, children }) => (
-																<a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline underline-offset-2 hover:text-blue-700">
-																	{children}
-																</a>
-															),
-														}}
+													<div
+														key={`txt-${i}`}
+														className="prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:rounded-lg [&_code]:text-xs"
 													>
-														{textPart.text}
-													</ReactMarkdown>
-												</div>
-											);
-										})}
+														<ReactMarkdown
+															remarkPlugins={[remarkGfm]}
+															components={{
+																img: MarkdownImage,
+																a: ({ href, children }) => (
+																	<a
+																		href={href}
+																		target="_blank"
+																		rel="noopener noreferrer"
+																		className="text-blue-600 underline underline-offset-2 hover:text-blue-700"
+																	>
+																		{children}
+																	</a>
+																),
+															}}
+														>
+															{textPart.text}
+														</ReactMarkdown>
+													</div>
+												);
+											})}
 
 										{/* Tool parts */}
 										{(m.parts ?? [])
@@ -336,13 +402,20 @@ export function MessageList({
 													toolName?: string;
 												};
 												const running = toolPart.state === "input";
-												const toolName = toolPart.toolName ?? part.type.replace("tool-", "");
+												const toolName =
+													toolPart.toolName ?? part.type.replace("tool-", "");
 												return (
 													<p
 														key={`tool-${i}`}
 														className="text-xs text-muted-foreground italic flex items-center gap-1.5"
 													>
-														<span className={running ? "animate-spin inline-block" : ""}>⚙</span>
+														<span
+															className={
+																running ? "animate-spin inline-block" : ""
+															}
+														>
+															⚙
+														</span>
 														{running
 															? `${cc.toolCalling} ${toolName}…`
 															: `${cc.toolDone} ${toolName}`}

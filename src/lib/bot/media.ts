@@ -4,8 +4,8 @@
 
 import "server-only";
 
-import { uploadToR2 } from "@/lib/storage";
 import { newId } from "@/lib/id";
+import { uploadToR2 } from "@/lib/storage";
 
 export type MediaDownload = { url: string; mediaType: string; key: string };
 
@@ -47,7 +47,9 @@ export async function downloadTelegramImage(
 		);
 		if (!fileRes.ok) return null;
 		const fileData = await fileRes.json();
-		const filePath: string | undefined = (fileData as Record<string, Record<string, string>>).result?.file_path;
+		const filePath: string | undefined = (
+			fileData as Record<string, Record<string, string>>
+		).result?.file_path;
 		if (!filePath) return null;
 
 		const imgRes = await fetch(
@@ -60,7 +62,11 @@ export async function downloadTelegramImage(
 		const mediaType = EXT_TO_MIME[ext] ?? "image/jpeg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
 
-		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType: mediaType });
+		await uploadToR2({
+			key,
+			body: new Uint8Array(await imgRes.arrayBuffer()),
+			contentType: mediaType,
+		});
 		const url = buildPublicUrl(key);
 
 		return { url, mediaType, key };
@@ -82,7 +88,7 @@ export async function downloadWhatsAppImage(
 			signal: AbortSignal.timeout(10_000),
 		});
 		if (!metaRes.ok) return null;
-		const meta = await metaRes.json() as Record<string, string>;
+		const meta = (await metaRes.json()) as Record<string, string>;
 		const mediaUrl = meta.url;
 		const mimeType = meta.mime_type ?? "image/jpeg";
 		if (!mediaUrl) return null;
@@ -96,7 +102,11 @@ export async function downloadWhatsAppImage(
 		const ext = mimeType.split("/")[1] ?? "jpg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
 
-		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType: mimeType });
+		await uploadToR2({
+			key,
+			body: new Uint8Array(await imgRes.arrayBuffer()),
+			contentType: mimeType,
+		});
 		const url = buildPublicUrl(key);
 
 		return { url, mediaType: mimeType, key };
@@ -112,13 +122,19 @@ export async function downloadDiscordImage(
 ): Promise<MediaDownload | null> {
 	if (!isStorageReady()) return null;
 	try {
-		const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(30_000) });
+		const imgRes = await fetch(imageUrl, {
+			signal: AbortSignal.timeout(30_000),
+		});
 		if (!imgRes.ok) return null;
 		const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
 		const ext = contentType.split("/")[1]?.split(";")[0] ?? "jpg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
 
-		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType });
+		await uploadToR2({
+			key,
+			body: new Uint8Array(await imgRes.arrayBuffer()),
+			contentType,
+		});
 		const url = buildPublicUrl(key);
 
 		return { url, mediaType: contentType, key };
@@ -144,7 +160,11 @@ export async function downloadSlackImage(
 		const ext = contentType.split("/")[1]?.split(";")[0] ?? "jpg";
 		const key = `uploads/${userId}/${newId()}.${ext}`;
 
-		await uploadToR2({ key, body: new Uint8Array(await imgRes.arrayBuffer()), contentType });
+		await uploadToR2({
+			key,
+			body: new Uint8Array(await imgRes.arrayBuffer()),
+			contentType,
+		});
 		const url = buildPublicUrl(key);
 
 		return { url, mediaType: contentType, key };
