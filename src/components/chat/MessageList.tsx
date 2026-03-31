@@ -384,6 +384,26 @@ export function MessageList({
 																		{children}
 																	</a>
 																),
+																table: ({ children }) => (
+																	<div className="overflow-x-auto my-2">
+																		<table className="min-w-full border-collapse border border-border text-sm">
+																			{children}
+																		</table>
+																	</div>
+																),
+																thead: ({ children }) => (
+																	<thead className="bg-muted">{children}</thead>
+																),
+																th: ({ children }) => (
+																	<th className="border border-border px-2 py-1 text-left font-semibold">
+																		{children}
+																	</th>
+																),
+																td: ({ children }) => (
+																	<td className="border border-border px-2 py-1">
+																		{children}
+																	</td>
+																),
 															}}
 														>
 															{textPart.text}
